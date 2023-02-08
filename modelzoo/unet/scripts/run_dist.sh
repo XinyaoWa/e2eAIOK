@@ -39,7 +39,7 @@ export MASTER_ADDR=$master && \
         -hosts $hosts \
         -print-rank-map \
         -verbose \
-        python -u nnUnet/nnunet/run/run_training_da.py \
+        python -u nnUNet/nnunet/run/run_training_da.py \
         3d_fullres nnUNetTrainer_DA_V2 508 507 1 \
         -p nnUNetPlansv2.1_trgSp_kits19 \
         -sp nnUNetPlansv2.1_trgSp_kits19 \
