@@ -20,7 +20,8 @@ master=`hostname`
 # hosts format: hostname1,hostname2,...
 hosts=$1
 OMP_NUM_THREADS=23
-epochs=20
+# epochs: usually 20
+epochs=$2
 
 echo "############################## 4 node opt model ##############################"
 # -exp_name 'cpu-test-epoch-20' \
