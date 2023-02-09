@@ -15,6 +15,8 @@
 #!/bin/bash
 set -x
 
+unset MASTER_ADDR
+
 echo "############################## setting env ##############################"
 export nnUNet_raw_data_base="/home/vmagent/app/data/adaptor_large/nnUNet_raw_data_base"
 export nnUNet_preprocessed="/home/vmagent/app/data/adaptor_large/nnUNet_preprocessed"
