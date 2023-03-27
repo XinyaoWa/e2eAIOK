@@ -26,7 +26,7 @@ RANDOM_SEED=`date '+%Y-%m-%d-%H-%M-%S'`
 #    --report_to none
 
 #finetune gpt2 with no trainer script
-#python run_clm_no_trainer.py \
+# python run_clm_no_trainer.py \
 #    --model_name_or_path /home/vmagent/app/data/LLM/gpt2/data \
 #    --dataset_name wikitext \
 #    --dataset_config_name wikitext-2-raw-v1 \
@@ -60,19 +60,19 @@ RANDOM_SEED=`date '+%Y-%m-%d-%H-%M-%S'`
 
 ######################### GPT2 with DeNas and KD ################
 #finetune gpt2 with no trainer with DeNas and KD
-python run_clm_no_trainer.py \
-    --model_name_or_path /home/vmagent/app/dataset/gpt2 \
-    --teacher_model_name_or_path /home/vmagent/app/dataset/gpt2-wikitext2 \
-    --is_denas \
-    --seed 12345 \
-    --is_transferrable \
-    --dataset_name wikitext \
-    --learning_rate 5e-4 \
-    --dataset_config_name wikitext-2-raw-v1 \
-    --per_device_train_batch_size 8 \
-    --per_device_eval_batch_size 8 \
-    --output_dir /home/vmagent/app/dataset/gpt2/denas-kd \
-    --report_to none 2>&1 | tee GPT2_DENAS_KD_finetune_wikitext_${RANDOM_SEED}.log
+# python run_clm_no_trainer.py \
+#     --model_name_or_path /home/vmagent/app/dataset/gpt2 \
+#     --teacher_model_name_or_path /home/vmagent/app/dataset/gpt2-wikitext2 \
+#     --is_denas \
+#     --seed 12345 \
+#     --is_transferrable \
+#     --dataset_name wikitext \
+#     --learning_rate 5e-4 \
+#     --dataset_config_name wikitext-2-raw-v1 \
+#     --per_device_train_batch_size 8 \
+#     --per_device_eval_batch_size 8 \
+#     --output_dir /home/vmagent/app/dataset/gpt2/denas-kd \
+#     --report_to none 2>&1 | tee GPT2_DENAS_KD_finetune_wikitext_${RANDOM_SEED}.log
 
 ########################GPT-XL################################
 #finetune gpt2-xl
@@ -112,3 +112,50 @@ python run_clm_no_trainer.py \
 #    --output_dir /home/vmagent/app/data/LLM/gpt-j-6B/finetune \
 #    --overwrite_output_dir \
 #    --report_to none
+
+# python run_clm_no_trainer.py \
+#    --model_name_or_path /home/vmagent/app/data/LLM/gpt-j/data \
+#    --dataset_name wikitext \
+#    --dataset_config_name wikitext-2-raw-v1 \
+#    --per_device_train_batch_size 1 \
+#    --per_device_eval_batch_size 1 \
+#    --output_dir /home/vmagent/app/data/LLM/gpt-j/finetune \
+#    --report_to none \
+#    --eval
+
+# Finetune
+# python -u run_clm_no_trainer.py \
+#    --model_name_or_path /home/vmagent/app/e2eaiok/xinyao/gptj-xy/data \
+#    --layermap_model gptj \
+#    --dataset_name wikitext \
+#    --dataset_config_name wikitext-2-raw-v1 \
+#    --per_device_train_batch_size 8 \
+#    --per_device_eval_batch_size 8 \
+#    --output_dir /home/vmagent/app/e2eaiok/xinyao/gptj-xy/finetune \
+#    --report_to none \
+#    --num_train_epochs 2 \
+#    --checkpointing_steps 50
+
+#evaluate
+python -u run_clm_no_trainer.py \
+   --model_name_or_path /home/vmagent/app/e2eaiok/xinyao/gptj-xy/finetune/step_290 \
+   --dataset_name wikitext \
+   --dataset_config_name wikitext-2-raw-v1 \
+   --per_device_train_batch_size 8 \
+   --per_device_eval_batch_size 8 \
+   --output_dir /home/vmagent/app/e2eaiok/xinyao/gptj-xy/test \
+   --report_to none \
+   --eval
+
+# For De-Nas
+# python run_clm_no_trainer.py \
+#    --model_name_or_path /home/vmagent/app/e2eaiok/xinyao/gptj-xy/data \
+#    --layermap_model gptj \
+#    --is_denas \
+#    --dataset_name wikitext \
+#    --dataset_config_name wikitext-2-raw-v1 \
+#    --per_device_train_batch_size 8 \
+#    --per_device_eval_batch_size 8 \
+#    --output_dir /home/vmagent/app/e2eaiok/xinyao/gptj-xy/denas \
+#    --report_to none \
+#    --checkpointing_steps 50

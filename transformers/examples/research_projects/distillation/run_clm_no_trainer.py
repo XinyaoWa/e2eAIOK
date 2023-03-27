@@ -59,8 +59,8 @@ from transformers.utils.versions import require_version
 
 from e2eAIOK.DeNas.thirdparty.supernet_hf import SuperHFModelForCausalLM
 from e2eAIOK.DeNas.thirdparty.utils import decode_arch
-from e2eAIOK.ModelAdapter.engine_core.distiller import KD
-from e2eAIOK.ModelAdapter.engine_core.transferrable_model import *
+from distiller import Distiller
+from utils import init_gpu_params
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.27.0.dev0")
@@ -248,11 +248,68 @@ def parse_args():
         "--is_transferrable",
        action='store_true'
     )
+
+    parser.add_argument("--temperature", default=2.0, type=float, help="Temperature for the softmax temperature.")
     parser.add_argument(
-        "--layermap_model",
-        type=str,
-        default="gpt2",
+        "--alpha_ce", default=0.5, type=float, help="Linear weight for the distillation loss. Must be >=0."
     )
+    parser.add_argument(
+        "--alpha_mlm",
+        default=0.0,
+        type=float,
+        help="Linear weight for the MLM loss. Must be >=0. Should be used in conjunction with `mlm` flag.",
+    )
+    parser.add_argument("--alpha_clm", default=0.5, type=float, help="Linear weight for the CLM loss. Must be >=0.")
+    parser.add_argument("--alpha_mse", default=0.0, type=float, help="Linear weight of the MSE loss. Must be >=0.")
+    parser.add_argument(
+        "--alpha_cos", default=0.0, type=float, help="Linear weight of the cosine embedding loss. Must be >=0."
+    )
+    parser.add_argument(
+        "--mlm", action="store_true", help="The LM step: MLM or CLM. If `mlm` is True, the MLM is used over CLM."
+    )
+    parser.add_argument(
+        "--mlm_mask_prop",
+        default=0.15,
+        type=float,
+        help="Proportion of tokens for which we need to make a prediction.",
+    )
+    parser.add_argument("--word_mask", default=0.8, type=float, help="Proportion of tokens to mask out.")
+    parser.add_argument("--word_keep", default=0.1, type=float, help="Proportion of tokens to keep.")
+    parser.add_argument("--word_rand", default=0.1, type=float, help="Proportion of tokens to randomly replace.")
+    parser.add_argument(
+        "--restrict_ce_to_mask",
+        action="store_true",
+        help="If true, compute the distillation loss only the [MLM] prediction distribution.",
+    )
+    parser.add_argument(
+        "--freeze_pos_embs",
+        action="store_true",
+        help="Freeze positional embeddings during distillation. For student_type in ['roberta', 'gpt2'] only.",
+    )
+
+    parser.add_argument("--warmup_prop", default=0.05, type=float, help="Linear warmup proportion.")
+    parser.add_argument("--adam_epsilon", default=1e-6, type=float, help="Epsilon for Adam optimizer.")
+    parser.add_argument("--max_grad_norm", default=5.0, type=float, help="Max gradient norm.")
+
+    parser.add_argument(
+        "--fp16",
+        action="store_true",
+        help="Whether to use 16-bit (mixed) precision (through NVIDIA apex) instead of 32-bit",
+    )
+    parser.add_argument(
+        "--fp16_opt_level",
+        type=str,
+        default="O1",
+        help=(
+            "For fp16: Apex AMP optimization level selected in ['O0', 'O1', 'O2', and 'O3']."
+            "See details at https://nvidia.github.io/apex/amp.html"
+        ),
+    )
+    parser.add_argument("--n_gpu", type=int, default=1, help="Number of GPUs in the node.")
+    parser.add_argument("--local_rank", type=int, default=-1, help="Distributed training - Local rank")
+    parser.add_argument("--log_interval", type=int, default=5, help="Tensorboard logging interval.")
+    parser.add_argument("--checkpoint_interval", type=int, default=50, help="Checkpoint interval.")
+    parser.add_argument("--eval_interval", type=int, default=50, help="evaluation interval.")
 
     args = parser.parse_args()
 
@@ -272,8 +329,10 @@ def parse_args():
 
     return args
 
+
 def main():
     args = parse_args()
+    init_gpu_params(args)
 
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
@@ -421,6 +480,9 @@ def main():
         logger.info("best_model_structure:{}".format(json.dumps(submodel_config)))
     n_params = sum({p.data_ptr(): p.numel() for p in model.parameters()}.values())
 
+    if args.freeze_pos_embs:
+        model.transformer.wpe.weight.requires_grad = False
+
     # We resize the embeddings only when necessary to avoid index errors. If you are creating a model from scratch
     # on a small vocab and want a smaller embedding size, remove this test.
     embedding_size = model.get_input_embeddings().weight.shape[0]
@@ -444,12 +506,6 @@ def main():
             for param in child.parameters():
                 param.requires_grad = False
         ###########################end of prepare teacher model############################
-
-        ###########################Prepare distiller############################
-        distiller= KD(teacher_model,teacher_type="huggingface_gpt2")
-        loss_fn = None
-        model = make_transferrable_with_knowledge_distillation(model,loss_fn,distiller,backbone_loss_weight=1,distiller_loss_weight=1)
-        ###########################end of prepare distiller############################
 
     # Preprocessing the datasets.
     # First we tokenize all the texts.
@@ -534,275 +590,14 @@ def main():
         eval_dataset, collate_fn=default_data_collator, batch_size=args.per_device_eval_batch_size
     )
 
-    # Optimizer
-    # Split weights in two groups, one with weight decay and the other not.
-    no_decay = ["bias", "layer_norm.weight"]
-    optimizer_grouped_parameters = [
-        {
-            "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay) and p.requires_grad],
-            "weight_decay": args.weight_decay,
-        },
-        {
-            "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay) and p.requires_grad],
-            "weight_decay": 0.0,
-        },
-    ]
-
-    optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=args.learning_rate)
-
-    # Scheduler and math around the number of training steps.
-    overrode_max_train_steps = False
-    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
-    if args.max_train_steps is None:
-        args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
-        overrode_max_train_steps = True
-
-    lr_scheduler = get_scheduler(
-        name=args.lr_scheduler_type,
-        optimizer=optimizer,
-        num_warmup_steps=args.num_warmup_steps * args.gradient_accumulation_steps,
-        num_training_steps=args.max_train_steps * args.gradient_accumulation_steps,
+    torch.cuda.empty_cache()
+    if args.n_gpu > 0:
+        model.to(f"cuda:{args.local_rank}")
+        teacher_model.to(f"cuda:{args.local_rank}")
+    distiller = Distiller(
+        params=args, dataset=train_dataloader, eval_dataloader=eval_dataloader,token_probs=None, student=model, teacher=teacher_model
     )
-
-    # Prepare everything with our `accelerator`.
-    model, optimizer, train_dataloader, eval_dataloader, lr_scheduler = accelerator.prepare(
-        model, optimizer, train_dataloader, eval_dataloader, lr_scheduler
-    )
-
-    # On TPU, the tie weights in our model have been disconnected, so we need to restore the ties.
-    if accelerator.distributed_type == DistributedType.TPU:
-        model.tie_weights()
-
-    # We need to recalculate our total training steps as the size of the training dataloader may have changed.
-    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
-    if overrode_max_train_steps:
-        args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
-    # Afterwards we recalculate our number of training epochs
-    args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
-
-    # Figure out how many steps we should save the Accelerator states
-    checkpointing_steps = args.checkpointing_steps
-    if checkpointing_steps is not None and checkpointing_steps.isdigit():
-        checkpointing_steps = int(checkpointing_steps)
-
-    # We need to initialize the trackers we use, and also store our configuration.
-    # The trackers initializes automatically on the main process.
-    if args.with_tracking:
-        experiment_config = vars(args)
-        # TensorBoard cannot log Enums, need the raw value
-        experiment_config["lr_scheduler_type"] = experiment_config["lr_scheduler_type"].value
-        accelerator.init_trackers("clm_no_trainer", experiment_config)
-
-    # Train!
-    start_train_time = time.time()
-    total_batch_size = args.per_device_train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
-
-    logger.info("***** Running training *****")
-    logger.info(f"  Num examples = {len(train_dataset)}")
-    logger.info(f"  Num Epochs = {args.num_train_epochs}")
-    logger.info(f"  Instantaneous batch size per device = {args.per_device_train_batch_size}")
-    logger.info(f"  Total train batch size (w. parallel, distributed & accumulation) = {total_batch_size}")
-    logger.info(f"  Gradient Accumulation steps = {args.gradient_accumulation_steps}")
-    logger.info(f"  Total optimization steps = {args.max_train_steps}")
-    logger.info(f"  Training new model from scratch - Total size={n_params/2**20:.2f}M params")
-    # Only show the progress bar once on each machine.
-    # progress_bar = tqdm(range(args.max_train_steps), disable=not accelerator.is_local_main_process)
-    completed_steps = 0
-    starting_epoch = 0
-
-    # Potentially load in the weights and states from a previous save
-    if args.resume_from_checkpoint:
-        if args.resume_from_checkpoint is not None or args.resume_from_checkpoint != "":
-            accelerator.print(f"Resumed from checkpoint: {args.resume_from_checkpoint}")
-            accelerator.load_state(args.resume_from_checkpoint)
-            path = os.path.basename(args.resume_from_checkpoint)
-        else:
-            # Get the most recent checkpoint
-            dirs = [f.name for f in os.scandir(os.getcwd()) if f.is_dir()]
-            dirs.sort(key=os.path.getctime)
-            path = dirs[-1]  # Sorts folders by date modified, most recent checkpoint is the last
-        # Extract `epoch_{i}` or `step_{i}`
-        training_difference = os.path.splitext(path)[0]
-
-        if "epoch" in training_difference:
-            starting_epoch = int(training_difference.replace("epoch_", "")) + 1
-            resume_step = None
-        else:
-            # need to multiply `gradient_accumulation_steps` to reflect real steps
-            resume_step = int(training_difference.replace("step_", "")) * args.gradient_accumulation_steps
-            starting_epoch = resume_step // len(train_dataloader)
-            resume_step -= starting_epoch * len(train_dataloader)
-
-    # update the progress_bar if load from checkpoint
-    # progress_bar.update(starting_epoch * num_update_steps_per_epoch)
-    completed_steps = starting_epoch * num_update_steps_per_epoch
-
-    eval_steps = len(eval_dataloader)
-    if args.eval:
-        model.eval()
-        backbone = model.backbone if args.is_transferrable else model
-        losses = []
-        progress_bar_eval = tqdm(range(eval_steps))
-        for step, batch in enumerate(eval_dataloader):
-            with torch.no_grad():
-                outputs = backbone(**batch)
-
-            loss = outputs.loss
-            losses.append(accelerator.gather_for_metrics(loss.repeat(args.per_device_eval_batch_size)))
-            progress_bar_eval.update(1)
-
-        losses = torch.cat(losses)
-        try:
-            eval_loss = torch.mean(losses)
-            perplexity = math.exp(eval_loss)
-        except OverflowError:
-            perplexity = float("inf")
-
-        logger.info(f" perplexity: {perplexity} eval_loss: {eval_loss}")
-        return
-
-    for epoch in range(starting_epoch, args.num_train_epochs):
-        model.train()
-        if args.with_tracking:
-            total_loss = 0
-        for step, batch in enumerate(train_dataloader):
-            batch["output_hidden_states"] = True
-            # We need to skip steps until we reach the resumed step
-            if args.resume_from_checkpoint and epoch == starting_epoch:
-                if resume_step is not None and step < resume_step:
-                    if step % args.gradient_accumulation_steps == 0:
-                        # progress_bar.update(1)
-                        completed_steps += 1
-                    continue
-
-            if isinstance(checkpointing_steps, int) and completed_steps % checkpointing_steps == 0:
-                ##save checkpoint
-                output_dir = f"step_{completed_steps}"
-                if args.output_dir is not None:
-                    output_dir = os.path.join(args.output_dir, output_dir)
-                accelerator.save_state(output_dir)
-                
-                ##eval
-                model.eval()
-                backbone = model.backbone if args.is_transferrable else model
-                losses_eval = []
-                for step_eval, batch_eval in enumerate(eval_dataloader):
-                    with torch.no_grad():
-                        outputs_eval = backbone(**batch_eval)
-
-                    loss_eval = outputs_eval.loss
-                    losses_eval.append(accelerator.gather_for_metrics(loss_eval.repeat(args.per_device_eval_batch_size)))
-                    if step_eval % 5 ==0:
-                        logging.info(f"eval step:{step_eval}/{eval_steps}")
-
-                losses_eval = torch.cat(losses_eval)
-                try:
-                    eval_loss = torch.mean(losses_eval)
-                    perplexity_eval = math.exp(eval_loss)
-                except OverflowError:
-                    perplexity_eval = float("inf")
-
-                logger.info(f"step: {step} perplexity_eval: {perplexity_eval} eval_loss: {eval_loss}")
-                model.train()
-
-            with accelerator.accumulate(model):
-                if args.is_transferrable:
-                    outputs = model(batch)
-                    losses = model.loss(outputs, None)
-                    loss = losses.total_loss
-                else:
-                    outputs = model(**batch)
-                    loss = outputs.loss
-                # We keep track of the loss at each epoch
-                if args.with_tracking:
-                    total_loss += loss.detach().float()
-                accelerator.backward(loss)
-                optimizer.step()
-                lr_scheduler.step()
-                optimizer.zero_grad()
-            if step % 2 == 0:
-                if args.is_transferrable:
-                    logging.info(f"epoch: {epoch} step: {step} total loss: {losses.total_loss}, backbone loss: {losses.backbone_loss}, distiller loss: {losses.distiller_loss}")
-                else:
-                    logging.info(f"epoch: {epoch} step: {step} loss: {loss}")
-            
-            # Checks if the accelerator has performed an optimization step behind the scenes
-            if accelerator.sync_gradients:
-                # progress_bar.update(1)
-                completed_steps += 1
-                    
-            if completed_steps >= args.max_train_steps:
-                break
-
-        model.eval()
-        backbone = model.backbone if args.is_transferrable else model
-        losses = []
-        for step, batch in enumerate(eval_dataloader):
-            with torch.no_grad():
-                outputs = backbone(**batch)
-
-            loss = outputs.loss
-            losses.append(accelerator.gather_for_metrics(loss.repeat(args.per_device_eval_batch_size)))
-
-        losses = torch.cat(losses)
-        try:
-            eval_loss = torch.mean(losses)
-            perplexity = math.exp(eval_loss)
-        except OverflowError:
-            perplexity = float("inf")
-
-        logger.info(f"epoch {epoch}: perplexity: {perplexity} eval_loss: {eval_loss}")
-
-        if args.with_tracking:
-            accelerator.log(
-                {
-                    "perplexity": perplexity,
-                    "eval_loss": eval_loss,
-                    "train_loss": total_loss.item() / len(train_dataloader),
-                    "epoch": epoch,
-                    "step": completed_steps,
-                },
-                step=completed_steps,
-            )
-
-        if args.push_to_hub and epoch < args.num_train_epochs - 1:
-            accelerator.wait_for_everyone()
-            unwrapped_model = accelerator.unwrap_model(model)
-            unwrapped_model.save_pretrained(
-                args.output_dir, is_main_process=accelerator.is_main_process, save_function=accelerator.save
-            )
-            if accelerator.is_main_process:
-                tokenizer.save_pretrained(args.output_dir)
-                repo.push_to_hub(
-                    commit_message=f"Training in progress epoch {epoch}", blocking=False, auto_lfs_prune=True
-                )
-
-        output_dir = f"epoch_{epoch}"
-        if args.output_dir is not None:
-            output_dir = os.path.join(args.output_dir, output_dir)
-        accelerator.save_state(output_dir)
-
-    end_train_time = time.time()
-    logger.info("Total Fine Tuning Time: {}".format(end_train_time-start_train_time))
-
-    if args.with_tracking:
-        accelerator.end_training()
-
-    if args.output_dir is not None and not args.is_transferrable:
-        accelerator.wait_for_everyone()
-        unwrapped_model = accelerator.unwrap_model(model)
-        unwrapped_model.save_pretrained(
-            args.output_dir, is_main_process=accelerator.is_main_process, save_function=accelerator.save
-        )
-        if accelerator.is_main_process:
-            tokenizer.save_pretrained(args.output_dir)
-            if args.push_to_hub:
-                repo.push_to_hub(commit_message="End of training", auto_lfs_prune=True)
-
-            with open(os.path.join(args.output_dir, "all_results.json"), "w") as f:
-                json.dump({"perplexity": perplexity}, f)
-                json.dump({"training_time": str(end_train_time-start_train_time)},f)
-
+    distiller.train()
 
 if __name__ == "__main__":
     main()
