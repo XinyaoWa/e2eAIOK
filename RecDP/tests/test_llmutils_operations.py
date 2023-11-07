@@ -113,6 +113,63 @@ class Test_LLMUtils_Operations(unittest.TestCase):
         with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
             ctx.show(op.process_rayds(ctx.ds))
 
+    def test_filter_by_alphanumeric_ray(self):
+        pass
+        # Ray version not supported yet
+        op = AlphanumericFilter()
+        with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_rayds(ctx.ds))
+
+
+    def test_filter_by_average_line_length_ray(self):
+        pass
+        # Ray version not supported yet
+        op = AverageLineLengthFilter()
+        with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_rayds(ctx.ds))
+
+    def test_filter_by_maximum_line_length_ray(self):
+        pass
+        # Ray version not supported yet
+        op = MaximumLineLengthFilter()
+        with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_rayds(ctx.ds))
+
+    def test_filter_by_special_characters_ray(self):
+        pass
+        # Ray version not supported yet
+        op = SpecialCharactersFilter()
+        with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_rayds(ctx.ds))
+
+
+    def test_filter_by_token_num_ray(self):
+        # Ray version not supported yet
+        op = TokenNumFilter(model_key=os.path.join(RECDP_MODELS_CACHE, "pythia-6.9b-deduped"))
+        with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_rayds(ctx.ds))
+
+    def test_filter_by_word_num_ray(self):
+        # Ray version not supported yet
+        op = WordNumFilter()
+        with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_rayds(ctx.ds))
+
+    def test_filter_by_perplexity_ray(self):
+        op = PerplexityFilter()
+        with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_rayds(ctx.ds))
+
+    def test_filter_by_word_repetition_ray(self):
+        op = WordRepetitionFilter()
+        with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_rayds(ctx.ds))
+
+    def test_perplexity_score_ray(self):
+        op = TextPerplexityScore(language='en')
+        with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_rayds(ctx.ds))
+
     def test_text_fixer_ray(self):
         op = TextFix()
         with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
@@ -135,6 +192,22 @@ class Test_LLMUtils_Operations(unittest.TestCase):
             
     def test_sentence_split_ray(self):
         op = DocumentSplit()
+        with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_rayds(ctx.ds))
+            
+    def test_customermap_ray(self):
+        def proc(text):
+            return f'processed_{text}'
+        
+        op = TextCustomerMap(func=proc, text_key='text')
+        with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_rayds(ctx.ds))
+            
+    def test_customerfilter_ray(self):
+        def cond(text):
+            return len(text) < 200
+        
+        op = TextCustomerFilter(func=cond, text_key='text')
         with RayContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
             ctx.show(op.process_rayds(ctx.ds))
 
@@ -175,6 +248,46 @@ class Test_LLMUtils_Operations(unittest.TestCase):
         with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
             ctx.show(op.process_spark(ctx.spark, ctx.ds))
 
+    def test_filter_by_alphanumeric_spark(self):
+        op = AlphanumericFilter()
+        with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_spark(ctx.spark, ctx.ds))
+
+    def test_filter_by_average_line_length_spark(self):
+        op = AverageLineLengthFilter()
+        with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_spark(ctx.spark, ctx.ds))
+
+    def test_filter_by_maximum_line_length_spark(self):
+        op = MaximumLineLengthFilter()
+        with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_spark(ctx.spark, ctx.ds))
+
+    def test_filter_by_special_characters_spark(self):
+        op = SpecialCharactersFilter()
+        with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_spark(ctx.spark, ctx.ds))
+
+    def test_filter_by_token_num_spark(self):
+        op = TokenNumFilter(model_key=os.path.join(RECDP_MODELS_CACHE, "pythia-6.9b-deduped"))
+        with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_spark(ctx.spark, ctx.ds))
+
+    def test_filter_by_word_num_spark(self):
+        op = WordNumFilter()
+        with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_spark(ctx.spark, ctx.ds))
+
+    def test_filter_by_perplexity_spark(self):
+        op = PerplexityFilter()
+        with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_spark(ctx.spark, ctx.ds))
+
+    def test_filter_by_word_repetition_spark(self):
+        op = WordRepetitionFilter()
+        with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_spark(ctx.spark, ctx.ds))
+
     def test_text_fixer_spark(self):
         op = TextFix()
         with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
@@ -212,51 +325,28 @@ class Test_LLMUtils_Operations(unittest.TestCase):
         with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
             ctx.show(op.process_spark(ctx.spark, ctx.ds))
 
-class RDS:
-    def __init__(self, ds):
-        self.ds_engine = 'spark' if isinstance(ds, DataFrame) else 'ray'
-        self.ds = ds
-    def to_pandas(self):
-        print(self.ds_engine)
-        if self.ds_engine == 'ray':
-            return self.ds.to_pandas()
-        elif self.ds_engine == 'spark':
-            return self.ds.toPandas()
-        else:
-            pass
-     
-class Test_LLMUtils_Pipeline(unittest.TestCase):
-    
-    def setUp(self) -> None:
-        print(f"\n******\nTesting Method Name: {self._testMethodName}\n******")
+    def test_customermap_spark(self):
+        def proc(text):
+            return f'processed_{text}'
+        
+        op = TextCustomerMap(func=proc, text_key='text')
+        with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_spark(ctx.spark, ctx.ds))
+            
+    def test_customerfilter_spark(self):
+        def cond(text):
+            return len(text) < 200
+        
+        op = TextCustomerFilter(func=cond, text_key='text')
+        with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_spark(ctx.spark, ctx.ds))
 
-    def test_TextSourceId(self):
-        pipeline = TextPipeline()
-        ops = [
-            SourcedJsonlReader("tests/data/llm_data/", source_prefix="")
-        ]
-        pipeline.add_operations(ops)
-        ret = pipeline.execute()
-        pd = RDS(ret).to_pandas()
-        display(pd)
-        
-    def test_TextPIIRemoval_resumable(self):
-        pipeline = ResumableTextPipeline()
-        ops = [
-            JsonlReader("tests/data/llm_data/"),
-            PIIRemoval(model_root_path = os.path.join(RECDP_MODELS_CACHE, "huggingface"))
-        ]
-        pipeline.add_operations(ops)
-        pipeline.execute()
-        
-    def test_TextPipeline_resumable(self):
-        pipeline = ResumableTextPipeline()
-        ops = [
-            JsonlReader("tests/data/llm_data/"),
-            LengthFilter(),
-            ProfanityFilter(),
-            LanguageIdentify(fasttext_model_dir = os.path.join(RECDP_MODELS_CACHE, "lid.bin")),
-            PerfileParquetWriter("ResumableTextPipeline_output_20231004205724")
-        ]
-        pipeline.add_operations(ops)
-        pipeline.execute()
+    def test_rouge_score_dedup_spark(self):
+        op = RougeScoreDedup()
+        with SparkContext("tests/data/llm_data/github_sample_50.jsonl") as ctx:
+            ctx.show(op.process_spark(ctx.spark, ctx.ds))
+
+    def test_perplexity_score_spark(self):
+        op = TextPerplexityScore(language='en')
+        with SparkContext("tests/data/llm_data/tiny_c4_sample.jsonl") as ctx:
+            ctx.show(op.process_spark(ctx.spark, ctx.ds))

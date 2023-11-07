@@ -19,7 +19,9 @@ class BasePipeline:
         return repr(self.pipeline)
 
     def export(self, file_path = None):
-        json_object = self.pipeline.json_dump()
+        import copy
+        pipeline_deepcopy = copy.deepcopy(self.pipeline)
+        json_object = pipeline_deepcopy.json_dump()
         if file_path:
             # Writing to sample.json
             with open(file_path, "w") as outfile:
@@ -47,12 +49,27 @@ class BasePipeline:
         
     def import_from_yaml(self, file_path):
         with open(file_path, "r") as infile:
-            yaml_object = yaml.safe_load(file)
-        
-        for idx, op_config in json_object.items():
-            idx = int(idx)
-            if idx in self.pipeline:
-                continue
+            yaml_object = yaml.safe_load(infile)
+
+        if 'pipeline' not in yaml_object:
+            raise ValueError(f"The text pipeline YAML file {file_path} does not have 'pipeline' property configured.")
+
+        for idx, op_config in enumerate(yaml_object['pipeline']):
+            idx = int(op_config['id']) if 'id' in op_config else int(idx)
+            if 'children' not in op_config:
+                op_config['children'] = [] if idx == 0 else [idx - 1]
+
+            for key, value in op_config.items():
+                if key not in ['id', 'children', 'config', 'op']:
+                    op_config['op'] = key
+                    op_config['config'] = value if value else {}
+                    break
+
+            if 'op' not in op_config:
+                raise ValueError(f"No operator name found for config {op_config}")
+
+            if 'config' not in op_config:
+                op_config['config'] = {}
             self.pipeline[idx] = Operation.load(idx, op_config)
         
     def create_executable_pipeline(self):
@@ -65,7 +82,13 @@ class BasePipeline:
                 executable_pipeline[idx] = actual_op
                 executable_sequence.append(executable_pipeline[idx])
         return executable_pipeline, executable_sequence
-    
+
+    def find_operation(self, target_list):
+        for idx, op in self.pipeline.items():
+            if op.op in target_list:
+                return op
+        return None
+
     def add_operation(self, config):
         pass
 
@@ -95,7 +118,7 @@ class BasePipeline:
             self.transformed_end_idx = children[0]
         del self.pipeline[cur_idx]
           
-    def plot(self):
+    def plot(self, filename=None):
         f = graphviz.Digraph(format='svg')
         edges = []
         nodes = []
@@ -133,7 +156,10 @@ class BasePipeline:
         for edge in edges:
             f.edge(*edge)
         try:
-            f.render(filename='pipeline', view = False)
+            if filename is None:
+                f.render(filename='pipeline_plot', view=False)
+            else:
+                f.render(filename=filename, view=False)
         except:
             pass
         return f

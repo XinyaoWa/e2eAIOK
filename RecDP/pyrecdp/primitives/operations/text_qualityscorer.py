@@ -280,17 +280,22 @@ def predict(model, ds, tokenizer=None, keep_method='label'):
 
 class TextQualityScorer(BaseLLMOperation):
     def __init__(self, text_key = 'text', model='gpt3'):
+        """
+        Initialization method
+        :param text_key: the name of field which will be apply language_idenfity.
+        :param model: quality classifier name to apply. It's "gpt3" in default. You
+            can use one of ["gpt3", "chinese", "code"] we provided
+        """
         settings = {'text_key': text_key, 'model': model}
         super().__init__(settings)
         self.text_key = text_key
-        self.model = model
+        self.model = model # model: quality classifier name to apply. It's "gpt3" in default. Youcan use one of ["gpt3", "chinese", "code"] we provided
         self.inplace = False
         self.support_spark = True
         self.support_ray = False
         
     def process_rayds(self, ds: Dataset) -> Dataset:
         raise NotImplementedError("Not implemented yet")
-        return ds.map(lambda x: self.process_row(x, self.text_key, new_name, text_bytesize))
     
     def process_spark(self, spark, spark_df: DataFrame) -> DataFrame:
         import pyspark.sql.functions as F

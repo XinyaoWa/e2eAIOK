@@ -19,4 +19,5 @@ from .text_normalization import text_normalization, text_normalization_spk
 from .quality_classifier import quality_classifier, quality_classifier_spark
 from .text_fixer import text_fixer
 from .sentence_split import sentence_split
-from .diversity_analysis import DiversityAnalysis, diversity
+from .diversity_analysis import diversity_indicate
+from .toxicity_score import toxicity_score, toxicity_score_spark

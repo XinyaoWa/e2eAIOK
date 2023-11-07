@@ -12,9 +12,11 @@ logger = logging.getLogger('deltatuner')
 
 SUPPORTED_ALGO = ["auto", "lora", "ssf"]
 
-def optimize(model, tokenizer, algo: str="auto", adapter_name: str="default", deltatuning_args: DeltaTunerArguments=None) -> DeltaTunerModel:
+def optimize(model, tokenizer, adapter_name: str="default", deltatuning_args: DeltaTunerArguments=None, **kwargs) -> DeltaTunerModel:
     if deltatuning_args is None:
-        deltatuning_args = DeltaTunerArguments()
+        deltatuning_args = DeltaTunerArguments(**kwargs)
+
+    algo = deltatuning_args.algo
     if algo not in SUPPORTED_ALGO:
         raise NotImplementedError("Current algorithm {} is not supported in deltatuner. ".format(algo))
     
@@ -39,9 +41,9 @@ def optimize(model, tokenizer, algo: str="auto", adapter_name: str="default", de
 
     if isinstance(peft_config, LoraConfig) or isinstance(peft_config, SSFConfig):
         if peft_config.task_type not in MODEL_TYPE_TO_DELTATUNER_MODEL_MAPPING:
-            model = DeltaTunerModel(model, tokenizer, peft_config, adapter_name, deltatuning_args)
+            model = DeltaTunerModel(model, peft_config, adapter_name, deltatuning_args, tokenizer)
         else:
-            model = MODEL_TYPE_TO_DELTATUNER_MODEL_MAPPING[peft_config.task_type](model, tokenizer, peft_config, adapter_name, deltatuning_args)
+            model = MODEL_TYPE_TO_DELTATUNER_MODEL_MAPPING[peft_config.task_type](model, peft_config, adapter_name, deltatuning_args, tokenizer)
         return model
     else:
         raise NotImplementedError("Current algorithm {} is not supported in deltatuner. ".format(algo))
