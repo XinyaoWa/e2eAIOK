@@ -312,16 +312,10 @@ class FinetuneArguments:
     )
 
 PROMPT_DICT = {
-    "prompt_with_input": (
-        "Below is an instruction that describes a task, paired with an input that provides further context. "
-        "Write a response that appropriately completes the request.\n\n"
-        "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:"
-    ),
-    "prompt_without_input": (
-        "Below is an instruction that describes a task. "
-        "Write a response that appropriately completes the request.\n\n"
-        "### Instruction:\n{instruction}\n\n### Response:"
-    ),
+    "qa": (
+        "Below is an question, please read it and write an response that appropriately answer the question.\n\n"
+        "### Question:\n{Question}\n\n ### Response:"
+    )
 }
 
 
@@ -331,13 +325,11 @@ def create_prompts(examples):
     prompts["target"] = []
     for example in examples:
         prompt_template = (
-            PROMPT_DICT["prompt_with_input"]
-            if example["input"] != ""
-            else PROMPT_DICT["prompt_without_input"]
+            PROMPT_DICT["qa"]
         )
         source = prompt_template.format_map(example)
         prompts["source"].append(source)
-        prompts["target"].append(example["output"])
+        prompts["target"].append(example["Answer"])
     return prompts
 
 
@@ -466,7 +458,7 @@ def main():
             streaming=data_args.streaming,
         )
 
-        if "validation" not in raw_datasets.keys() and training_args.do_eval:
+        if "validation" not in raw_datasets.keys() and (training_args.do_eval or training_args.do_predict):
             raw_datasets["validation"] = load_dataset(
                 data_args.dataset_name,
                 data_args.dataset_config_name,
@@ -507,7 +499,7 @@ def main():
         )
 
         # If no validation data is there, validation_split_percentage will be used to divide the dataset.
-        if "validation" not in raw_datasets.keys() and training_args.do_eval:
+        if "validation" not in raw_datasets.keys() and (training_args.do_eval or training_args.do_predict):
             raw_datasets["validation"] = load_dataset(
                 extension,
                 data_files=data_files,
@@ -536,7 +528,7 @@ def main():
             "prompt_targets", prompts["target"]
         )
         raw_datasets[key] = raw_datasets[key].remove_columns(columns_to_be_removed)
-
+       
     # Load model
     if model_args.model_name_or_path:
         model_dtype = torch.bfloat16 if training_args.bf16 else None
@@ -650,9 +642,10 @@ def main():
         tokenized_datasets_ = tokenized_datasets["train"].remove_columns(
             ["prompt_sources", "prompt_targets"]
         )
-        tokenized_datasets["train"] = concatenate_data(
-            tokenized_datasets_, data_args.max_seq_length
-        )
+        # tokenized_datasets["train"] = concatenate_data(
+        #     tokenized_datasets_, data_args.max_seq_length
+        # )
+        tokenized_datasets["train"] = tokenized_datasets_
 
     if training_args.do_train:
         if "train" not in tokenized_datasets:
@@ -729,7 +722,7 @@ def main():
     if finetune_args.debugs:
         if training_args.do_train:
             train_dataset = train_dataset.select(range(8))
-        if training_args.do_eval:
+        if (training_args.do_eval or training_args.do_predict):
             eval_dataset = eval_dataset.select(range(50))
 
     if not finetune_args.habana:
@@ -738,7 +731,7 @@ def main():
             model=model,
             args=training_args,
             train_dataset=train_dataset if training_args.do_train else None,
-            eval_dataset=eval_dataset if training_args.do_eval else None,
+            eval_dataset=eval_dataset if (training_args.do_eval or training_args.do_predict) else None,
             tokenizer=tokenizer,
             data_collator=data_collator,
         )
