@@ -1,45 +1,80 @@
 import os
 from abc import abstractmethod, ABC
 from pathlib import Path
-from typing import Any, List, Dict
-
-from .schema import Document
-
+from typing import List, Optional, Dict, Type
+from pyrecdp.core.import_utils import check_availability_and_install
+from pyrecdp.primitives.llmutils.document.schema import Document
 
 class DocumentReader(ABC):
-    """Utilities for loading data from a directory."""
+    """interface for document loader"""
 
-    def __init__(self, single_text_per_document: bool = True):
+    @abstractmethod
+    def load(self) -> List[Document]:
+        """abstract method for load documents"""
+
+
+class FileBaseReader(DocumentReader, ABC):
+    """interface for loading document from a file."""
+
+    def __init__(self, file: Path, single_text_per_document: bool = True, page_separator: str = '\n'):
         self.single_text_per_document = single_text_per_document
+        self.page_separator = page_separator or '\n'
+        self.file = file
+        
+    @classmethod
+    def setup(cls):
+        for pkg in cls.system_requirements:
+            os.system(f'apt-get install -y {pkg}')
+        for pkg in cls.requirements:
+            check_availability_and_install(pkg, verbose=1)
 
-    def load(self, file: Path, **load_kwargs: Any) -> List[Document]:
-        docs = self.load_data(file, **load_kwargs)
-        docs = list(filter(lambda d: (d.text.strip() != ""), docs))
+    def get_metadata(self):
+        return {"source": str(self.file)}
+
+    def load(self) -> List[Document]:
+        docs: List[Document] = self.load_file(self.file)
+        docs: List[Document] = list(filter(lambda d: (d.text.strip() != ""), docs))
+
+        def firstAlphaIsUppercase(word: str) -> bool:
+            i: int = 0
+            while i < len(word):
+                char = doc.text[i]
+                if char.isalpha():
+                    return char.isupper()
+                i += 1
+            return False
+
         if self.single_text_per_document:
-            text = "\n".join([doc.text for doc in docs])
-            return [Document(text=text, metadata={"source": str(file)})]
+            text = ''
+            for doc in docs:
+                if firstAlphaIsUppercase(doc.text):
+                    text += f"\n\n {doc.text}"
+                else:
+                    text += f" {doc.text}"
+
+            return [Document(text=text, metadata=self.get_metadata())]
         else:
             return docs
 
     @abstractmethod
-    def load_data(self, file: Path, **load_kwargs: Any) -> List[Document]:
+    def load_file(self, file: Path) -> List[Document]:
         """Load data from the input directory."""
 
 
-class PDFReader(DocumentReader):
+class PDFReader(FileBaseReader):
     """PDF parser."""
+    system_requirements = []
+    requirements = ['pypdf']
+    def __init__(self, file: Path, single_text_per_document: bool = True, page_separator: str = '\n',
+                 **load_kwargs):
+        super().__init__(file, single_text_per_document, page_separator)
+        self.load_kwargs = load_kwargs
+        self.file = file
 
-    def __init__(self, single_text_per_document: bool = True):
-        super().__init__(single_text_per_document)
-        try:
-            import pypdf
-        except ImportError:
-            os.system("pip install -q pypdf")
-
-    def load_data(self, file: Path, **load_kwargs: Any) -> List[Document]:
+    def load_file(self, file: Path) -> List[Document]:
         import pypdf
         # Create a PDF object
-        pdf = pypdf.PdfReader(file, **load_kwargs)
+        pdf = pypdf.PdfReader(file, **self.load_kwargs)
 
         # Get the number of pages in the PDF document
         num_pages = len(pdf.pages)
@@ -56,53 +91,41 @@ class PDFReader(DocumentReader):
         return docs
 
 
-class DocxReader(DocumentReader):
+class DocxReader(FileBaseReader):
     """Docx parser."""
+    system_requirements = []
+    requirements = ['python-docx']
+    def __init__(self, file: Path, single_text_per_document: bool = True, page_separator: str = '\n'):
+        super().__init__(file, single_text_per_document, page_separator)
 
-    def __init__(self, single_text_per_document: bool = True):
-        super().__init__(single_text_per_document)
-        try:
-            import docx
-        except ImportError:
-            os.system("pip install -q python-docx")
-
-    def load_data(self, file: Path, **load_kwargs: Any) -> List[Document]:
+    def load_file(self, file: Path) -> List[Document]:
         """Parse file."""
         import docx
-        document = docx.Document(file)
+        document = docx.Document(str(file))
 
         # read in each paragraph in file
         return [Document(text=p.text, metadata={"source": str(file)}) for p in document.paragraphs]
 
 
-class ImageReader(DocumentReader):
+class ImageReader(FileBaseReader):
     """Image parser.
 
     Extract text from images using pytesseract.
 
     """
-
+    system_requirements = ['tesseract-ocr']
+    requirements = ['pillow', 'pytesseract']
     def __init__(
             self,
+            file: Path,
             single_text_per_document: bool = True,
+            page_separator: str = '\n',
             keep_image: bool = False,
     ):
-        super().__init__(single_text_per_document)
+        super().__init__(file, single_text_per_document, page_separator)
         self._keep_image = keep_image
-        try:
-            from PIL import Image
-        except ImportError:
-            import os
-            os.system("pip install -q pillow")
 
-        try:
-            from pytesseract import pytesseract
-        except ImportError:
-            import os
-            os.system("apt-get -qq  install tesseract-ocr")
-            os.system("pip install -q pytesseract")
-
-    def load_data(self, file: Path, **load_kwargs: Any) -> List[Document]:
+    def load_file(self, file: Path) -> List[Document]:
         """Parse file."""
         from PIL import Image
         from pytesseract import pytesseract
@@ -119,79 +142,206 @@ class ImageReader(DocumentReader):
         ]
 
 
-class UnstructuredReader(DocumentReader):
-    """Loader that uses `Unstructured`."""
-
+class AudioReader(FileBaseReader):
+    system_requirements = ['ffmpeg']
+    requirements = ['openai-whisper']
     def __init__(
             self,
-            mode: str = "elements",
+            file: Path,
             single_text_per_document: bool = True,
-            **unstructured_kwargs: Any,
+            page_separator: str = '\n',
+            model = 'small',
     ):
-        super().__init__(single_text_per_document)
-        _valid_modes = {"single", "elements", "paged"}
-        if mode not in _valid_modes:
-            raise ValueError(
-                f"Got {mode} for `mode`, but should be one of `{_valid_modes}`"
-            )
-        self.mode = mode
-        self.unstructured_kwargs = unstructured_kwargs
-        try:
-            from unstructured.partition.auto import partition
-        except ImportError:
-            os.system("apt-get -qq install libreoffice")
-            os.system("pip install unstructured[ppt,pptx,xlsx]")
+        super().__init__(file, single_text_per_document, page_separator)
+        import whisper
+        self.model = whisper.load_model(model)
 
-    def _get_elements(self, path: Path) -> List:
-        from unstructured.partition.auto import partition
-        return partition(filename=str(path), **self.unstructured_kwargs)
+    def transcribe(self, file):
+        return self.model.transcribe(file)
+    def load_file(self, file: Path) -> List[Document]:
+        file = str(file)
+        result = self.transcribe(file)
+        return [
+            Document(text=result['text'], metadata={"source": file, 'language': result['language']})
+        ]
 
-    def _get_metadata(self, path: Path) -> dict:
-        return {"source": str(path)}
 
-    def load_data(self, path: Path, **load_kwargs: Any) -> List[Document]:
-        """Load file."""
-        elements = self._get_elements(path)
-        if self.mode == "elements":
-            docs: List[Document] = list()
-            for element in elements:
-                metadata = self._get_metadata(path)
-                # NOTE(MthwRobinson) - the attribute check is for backward compatibility
-                # with unstructured<0.4.9. The metadata attributed was added in 0.4.9.
-                if hasattr(element, "metadata"):
-                    metadata.update(element.metadata.to_dict())
-                if hasattr(element, "category"):
-                    metadata["category"] = element.category
-                docs.append(Document(text=str(element), metadata=metadata))
-        elif self.mode == "paged":
-            text_dict: Dict[int, str] = {}
-            meta_dict: Dict[int, Dict] = {}
+CUSTOMIZE_SUPPORTED_SUFFIX: Dict[str, Type[FileBaseReader]] = {
+    ".pdf": PDFReader,
+    ".docx": DocxReader,
+    ".jpg": ImageReader,
+    ".jpeg": ImageReader,
+    ".png": ImageReader,
+    ".mp3": AudioReader,
+    ".wav": AudioReader,
+    ".flac": AudioReader,
+}
 
-            for idx, element in enumerate(elements):
-                metadata = self._get_metadata(path)
-                if hasattr(element, "metadata"):
-                    metadata.update(element.metadata.to_dict())
-                page_number = metadata.get("page_number", 1)
 
-                # Check if this page_number already exists in docs_dict
-                if page_number not in text_dict:
-                    # If not, create new entry with initial text and metadata
-                    text_dict[page_number] = str(element) + "\n\n"
-                    meta_dict[page_number] = metadata
+class DirectoryReader(DocumentReader):
+    def __init__(
+            self,
+            input_dir: Optional[str] = None,
+            glob: str = "**/[!.]*",
+            use_multithreading: bool = False,
+            max_concurrency: Optional[int] = None,
+            input_files: Optional[List] = None,
+            single_text_per_document: bool = True,
+            exclude: Optional[List] = None,
+            exclude_hidden: bool = True,
+            silent_errors: bool = False,
+            recursive: bool = False,
+            encoding: str = "utf-8",
+            required_exts: Optional[List[str]] = CUSTOMIZE_SUPPORTED_SUFFIX.keys(),
+            page_separator: Optional[str] = '\n',
+    ) -> None:
+        """
+       Loads documents from a directory or a list of files.
+
+       Args:
+           input_dir: The input directory.
+           glob: A glob pattern to match files.
+           recursive: Whether to recursively search the input directory.
+           use_multithreading: Whether to use multithreading to load documents.
+           max_concurrency: The maximum number of concurrent threads to use.
+           input_files: A list of input files.
+           single_text_per_document: Whether to load each file as a single document.
+           exclude: A list of file patterns to exclude from loading.
+           exclude_hidden: Whether to exclude hidden files from loading.
+           silent_errors: Whether to silently ignore errors when loading documents.
+           encoding: The encoding to use when loading documents.
+           required_exts: A list of file extensions that are required for documents.
+                          default extensions are [.pdf, .docx, .jpeg, .jpg, .png]
+       """
+        if not input_dir and not input_files:
+            raise ValueError("Must provide either `path` or `input_files`.")
+        self.glob = glob
+        self.use_multithreading = use_multithreading
+        self.max_concurrency = max_concurrency
+        self.encoding = encoding
+        self.silent_errors = silent_errors
+        self.exclude = exclude
+        self.recursive = recursive
+        self.exclude_hidden = exclude_hidden
+        self.required_exts = required_exts
+        self.page_separator = page_separator
+        self.file_extractor = {}
+        if input_files:
+            self.input_files = []
+            for path in input_files:
+                if not os.path.isfile(path):
+                    raise ValueError(f"File {path} does not exist.")
+                input_file = Path(path)
+                self.input_files.append(input_file)
+        elif input_dir:
+            if not os.path.isdir(input_dir):
+                raise ValueError(f"Directory {input_dir} does not exist.")
+            self.input_dir = Path(input_dir)
+            self.exclude = exclude
+            self.input_files = self._add_files(self.input_dir)
+
+        if len(self.input_files) == 1:
+            self.use_multithreading = False
+
+        self.single_text_per_document = single_text_per_document
+        
+    def setup(self):
+        suffix_list = set(input_file.suffix.lower() for input_file in self.input_files)
+        for file_suffix in suffix_list:
+            if file_suffix in CUSTOMIZE_SUPPORTED_SUFFIX:
+                if file_suffix not in self.file_extractor:
+                    file_base_reader_cls: Type[FileBaseReader] = CUSTOMIZE_SUPPORTED_SUFFIX[file_suffix]
+                    file_base_reader_cls.setup()
+
+    def _add_files(self, input_dir: Path) -> List[Path]:
+        all_files = set()
+        rejected_files = set()
+
+        if self.exclude is not None:
+            for excluded_pattern in self.exclude:
+                if self.recursive:
+                    # Recursive glob
+                    for file in input_dir.rglob(excluded_pattern):
+                        rejected_files.add(Path(file))
                 else:
-                    # If exists, append to text and update the metadata
-                    text_dict[page_number] += str(element) + "\n\n"
-                    meta_dict[page_number].update(metadata)
+                    # Non-recursive glob
+                    for file in input_dir.glob(excluded_pattern):
+                        rejected_files.add(Path(file))
 
-            # Convert the dict to a list of Document objects
-            docs = [
-                Document(text=text_dict[key], metadata=meta_dict[key])
-                for key in text_dict.keys()
-            ]
-        elif self.mode == "single":
-            metadata = self._get_metadata(path)
-            text = "\n\n".join([str(el) for el in elements])
-            docs = [Document(text=text, metadata=metadata)]
-        else:
-            raise ValueError(f"mode of {self.mode} not supported.")
-        return docs
+        p = Path(input_dir)
+        file_refs = list(p.rglob(self.glob) if self.recursive else p.glob(self.glob))
+
+        for ref in file_refs:
+            # Manually check if file is hidden or directory instead of
+            # in glob for backwards compatibility.
+            is_dir = ref.is_dir()
+            skip_because_hidden = self.exclude_hidden and ref.name.startswith(".")
+            skip_because_bad_ext = (
+                    self.required_exts is not None and ref.suffix not in self.required_exts
+            )
+            skip_because_excluded = ref in rejected_files
+
+            if (
+                    is_dir
+                    or skip_because_hidden
+                    or skip_because_bad_ext
+                    or skip_because_excluded
+            ):
+                continue
+            else:
+                all_files.add(ref)
+
+        new_input_files = sorted(all_files)
+
+        if len(new_input_files) == 0:
+            raise ValueError(f"No files found in {input_dir}.")
+
+        return new_input_files
+
+    def _load_file(self, input_file: Path, pbar):
+        try:
+            file_suffix = input_file.suffix.lower()
+            if file_suffix in CUSTOMIZE_SUPPORTED_SUFFIX:                    
+                if file_suffix not in self.file_extractor:
+                    file_base_reader_cls: Type[FileBaseReader] = CUSTOMIZE_SUPPORTED_SUFFIX[file_suffix]
+                    self.file_extractor[file_suffix] = file_base_reader_cls(
+                        input_file,
+                        single_text_per_document=self.single_text_per_document,
+                        page_separator=self.page_separator,
+                    )
+                loader = self.file_extractor[file_suffix]
+                return loader.load()
+            else:
+                from pyrecdp.core.import_utils import import_langchain
+                import_langchain()
+                from langchain.document_loaders import UnstructuredFileLoader
+                loader = UnstructuredFileLoader(str(input_file))
+                docs = [Document(text=doc.text, metadata=doc.metadata) for doc in loader.load()]
+                docs = list(filter(lambda d: (d.pa.strip() != ""), docs))
+                if self.single_text_per_document:
+                    text = self.page_separator.join([doc.text for doc in docs])
+                    return [Document(text=text, metadata={"source": str(input_file)})]
+                else:
+                    return docs
+        finally:
+            if pbar:
+                pbar.update(1)
+
+    def load(self) -> List[Document]:
+        from tqdm import tqdm
+        pbar = tqdm(total=len(self.input_files))
+        try:
+            docs_result: List[Document] = []
+            if self.use_multithreading:
+                from concurrent.futures import ThreadPoolExecutor
+                with ThreadPoolExecutor(self.max_concurrency) as executor:
+                    for docs in executor.map(lambda i: self._load_file(i, pbar), self.input_files):
+                        docs_result.extend(docs)
+            else:
+                for file in self.input_files:
+                    docs = self._load_file(file, pbar)
+                    if len(docs) > 0:
+                        docs_result.extend(docs)
+            return docs_result
+        finally:
+            pbar.close()

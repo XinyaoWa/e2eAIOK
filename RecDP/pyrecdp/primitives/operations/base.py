@@ -11,8 +11,9 @@ from pyspark import RDD as SparkRDD
 from pyrecdp.core.utils import dump_fix
 from IPython.display import display
 from pyrecdp.core.registry import Registry
+from pyrecdp.core.import_utils import check_availability_and_install
 
-
+AUTOFEOPERATORS = Registry('BaseAutoFEOperation')
 class Operation:
     def __init__(self, idx, children, output, op, config):
         self.idx = idx
@@ -22,61 +23,33 @@ class Operation:
         self.config = config  # operation config
 
     def __repr__(self):
-        return repr(self.dump())
+        if hasattr(self, 'dump_dict'):
+            return repr(self.dump_dict)
+        from copy import deepcopy
+        dpcpy_obj = deepcopy(self)
+        return repr(dpcpy_obj.dump())
 
-    def dump(self):
+    def dump(self, base_dir = ''):
         dump_dict = {
             # 'idx': self.idx,
             'children': self.children,
             # 'output': self.output,
             'op': self.op,
-            'config': dump_fix(self.config)
+            'config': dump_fix(self.config, base_dir)
         }
+        self.dump_dict = dump_dict
         return dump_dict
 
     def instantiate(self):
-        from .data import DataFrameOperation, DataLoader
-        from .merge import MergeOperation
-        from .name import RenameOperation
-        from .category import CategorifyOperation, GroupCategorifyOperation
-        from .drop import DropOperation
-        from .fillna import FillNaOperation
-        from .featuretools_adaptor import FeaturetoolsOperation
-        from .geograph import HaversineOperation
-        from .type import TypeInferOperation
-        from .tuple import TupleOperation
-        from .custom import CustomOperation
-        from .encode import OnehotEncodeOperation, ListOnehotEncodeOperation, TargetEncodeOperation, \
-            CountEncodeOperation
-        from pyrecdp.primitives.estimators.lightgbm import LightGBM
-
-        operations_ = {
-            'DataFrame': DataFrameOperation,
-            'DataLoader': DataLoader,
-            'merge': MergeOperation,
-            'rename': RenameOperation,
-            'categorify': CategorifyOperation,
-            'group_categorify': GroupCategorifyOperation,
-            'drop': DropOperation,
-            'fillna': FillNaOperation,
-            'haversine': HaversineOperation,
-            'tuple': TupleOperation,
-            'type_infer': TypeInferOperation,
-            'lightgbm': LightGBM,
-            'onehot_encode': OnehotEncodeOperation,
-            'list_onehot_encode': ListOnehotEncodeOperation,
-            'target_encode': TargetEncodeOperation,
-            'count_encode': CountEncodeOperation,
-            'custom_operator': CustomOperation,
-            'time_series_infer': DummyOperation,
-        }
-
-        if self.op in operations_:
-            return operations_[self.op](self)
+        if self.op in AUTOFEOPERATORS.modules:
+            return AUTOFEOPERATORS.modules[self.op](self)
         elif self.op in LLMOPERATORS.modules:
             return LLMOPERATORS.modules[self.op].instantiate(self, self.config)
         else:
+            #print(self.op)
+            #print(AUTOFEOPERATORS.modules.keys())
             try:
+                from pyrecdp.primitives.operations.featuretools_adaptor import FeaturetoolsOperation
                 return FeaturetoolsOperation(self)
             except:
                 raise NotImplementedError(f"operation {self.op} is not implemented.")
@@ -178,13 +151,14 @@ LLMOPERATORS = Registry('BaseLLMOperation')
 
 
 class BaseLLMOperation(BaseOperation):
-    def __init__(self, args_dict={}):
+    def __init__(self, args_dict={}, requirements=[]):
         self.op = Operation(-1, None, [], f'{self.__class__.__name__}', args_dict)
         self.cache = None
         self.support_spark = False
         self.support_ray = True
         self.statistics = OperationStatistics(0, 0, 0, 0)
         self.statistics_flag = False
+        check_availability_and_install(requirements)
 
     @classmethod
     def instantiate(cls, op_obj, config):
@@ -240,48 +214,6 @@ class BaseLLMOperation(BaseOperation):
             f"A total of {self.statistics.total_in} rows of data were processed, using {self.statistics.used_time} seconds, "
             f"with {self.statistics.total_changed} rows modified or removed, {self.statistics.total_out} rows of data remaining.")
 
-    def union_ray_ds(self, ds1, ds2):
-        def add_new_empty_column(content, column_name):
-            content[column_name] = None
-            return content
-        def convert_to_string(content, column_name):
-            content[column_name] = str(content[column_name])
-            return content
-        for column in [column for column in ds2.columns() if column not in ds1.columns()]:
-            ds1 = ds1.map(lambda x: add_new_empty_column(x, column))
-        for column in [column for column in ds1.columns() if column not in ds2.columns()]:
-            ds2 = ds2.map(lambda x: add_new_empty_column(x, column))
-        ds1_fields_dict  =dict(zip(ds1.schema().names, ds1.schema().types))
-        ds2_fields_dict = dict(zip(ds2.schema().names, ds2.schema().types))
-        for column_name in ds1_fields_dict.keys():
-            if ds2_fields_dict[column_name] != ds1_fields_dict[column_name] and not (
-                    str(ds2_fields_dict[column_name]) == "null" or str(ds1_fields_dict[column_name]) == "null"):
-                ds1 = ds1.map(lambda x: convert_to_string(x, column_name))
-                ds2 = ds2.map(lambda x: convert_to_string(x, column_name))
-        return ds1.union(ds2)
-
-    def union_spark_df(self, df1, df2):
-        from pyspark.sql.functions import lit
-        import pyspark.sql.functions as F
-        from pyspark.sql.types import NullType, StringType
-        for column in [column for column in df2.columns if column not in df1.columns]:
-            df1 = df1.withColumn(column, lit(None))
-        for column in [column for column in df1.columns if column not in df2.columns]:
-            df2 = df2.withColumn(column, lit(None))
-        df1_fields, df2_fields = df1.schema.fields, df2.schema.fields
-        df1_fields_dict, df2_fields_dict = {}, {}
-        for df1_field in df1_fields:
-            df1_fields_dict[df1_field.name] = df1_field.dataType
-        for df2_field in df2_fields:
-            df2_fields_dict[df2_field.name] = df2_field.dataType
-        for column_name in df1_fields_dict.keys():
-            if df2_fields_dict[column_name] != df1_fields_dict[column_name] and not (
-                    df2_fields_dict[column_name] == NullType() or df1_fields_dict[column_name] == NullType()):
-                df1 = df1.withColumn(column_name, F.col(column_name).cast(StringType()))
-                df2 = df2.withColumn(column_name, F.col(column_name).cast(StringType()))
-        return df1.union(df2)
-
-
 class DummyOperation(BaseOperation):
     def __init__(self, op_base):
         super().__init__(op_base)
@@ -299,6 +231,7 @@ class DummyOperation(BaseOperation):
             return df
 
         return dummy_op
+AUTOFEOPERATORS.register(DummyOperation, "time_series_infer")
 
 
 @dataclass

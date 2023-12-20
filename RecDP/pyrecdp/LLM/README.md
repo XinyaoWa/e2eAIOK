@@ -37,7 +37,93 @@ RecDP LLM is a set of python components that enables quick and easy establish of
 | ![diversity](/RecDP/resources/diversity_analysis.png) | ![quality](/RecDP/resources/quality_scoring.png) | ![toxicity](/RecDP/resources/toxicity_analysis.png)| ![perxicity](/RecDP/resources/perplexity.png) |
 | [learn more](https://colab.research.google.com/github/intel/e2eAIOK/blob/main/RecDP/examples/notebooks/llmutils/data_diversity_control.ipynb) | [learn more](https://colab.research.google.com/github/intel/e2eAIOK/blob/main/RecDP/examples/notebooks/llmutils/text_quality_assessment.ipynb) | [learn more](https://colab.research.google.com/github/intel/e2eAIOK/blob/main/RecDP/examples/notebooks/llmutils/toxicity_bias_control.ipynb) | [learn more](https://colab.research.google.com/github/intel/e2eAIOK/blob/main/RecDP/examples/notebooks/llmutils/text_perplexity.ipynb) |
 
-## Data pipeline AutoHPO
+## Getting Start
+
+### Deploy
+```
+DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-8-jre graphviz
+pip install pyrecdp[LLM] --pre
+```
+
+### Data pipeline
+
+#### 1. RAG Data Pipeline - Build from public HTML [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/intel/e2eAIOK/blob/main/RecDP/examples/notebooks/llmutils/rag_pipeline.ipynb)
+Retrieval-augmented generation (RAG) for large language models (LLMs) aims to improve prediction quality by using an external datastore at inference time to build a richer prompt that includes some combination of context, history, and recent/relevant knowledge (RAG LLMs).
+Recdp LLM can provide a pipeline for ingesting data from a source and indexing it. We mainly provide the following capabilities.
+- **Load Data**: Load your data from source. You can use `UrlLoader` or `DirectoryLoader` for this.
+- **Improve Data Quality**: Clean up text for LLM RAG to use. It mainly solves the problem of sentences being split by incorrect line breaks after parsing the file, removing special characters, fixing unicode errors,  and so on.
+- **Split Text**: `DocumentSplit` helps break large Documents into smaller chunks. This is useful for indexing data and make it better used by the model.
+- **Vector Store**: In order to retrieve your data, We provide `DocumentIngestion` use a VectorStore and Embeddings model to store and index your data.
+
+Here is a basic RAG Data Pipeline example:
+```python
+from pyrecdp.primitives.operations import *
+from pyrecdp.LLM import TextPipeline
+
+pipeline = TextPipeline()
+ops = [
+    UrlLoader(urls=["https://www.intc.com/news-events/press-releases/detail/1655/intel-reports-third-quarter-2023-financial-results"], max_depth=0, target_tag='div', target_attrs={'class': 'main-content'}),
+    DirectoryLoader(files_path, glob="**/*.pdf"),
+    RAGTextFix(),
+    DocumentSplit(),
+    DocumentIngestion(
+        vector_store='FAISS',
+        vector_store_args={
+            "output_dir": "ResumableTextPipeline_output",
+            "index": "test_index"
+        },
+        embeddings='HuggingFaceEmbeddings',
+        embeddings_args={
+            'model_name': f"{model_root_path}/sentence-transformers/all-mpnet-base-v2"
+        }
+    ),
+]
+pipeline.add_operations(ops)
+pipeline.execute()
+```
+
+#### 2. Finetune Data Pipeline - Build finetune dataset from Plain Text to QA
+
+```
+from pyrecdp.LLM import TextPipeline
+from pyrecdp.primitives.operations import ParquetReader, TextPrompt, TextToQA, ParquetWriter
+
+text_key = "text_prompt"
+pipeline = TextPipeline()
+ops = [
+    ParquetReader(dataset_path),
+    TextPrompt(dataset_name="text", prompt_name="generate_qa",new_name=text_key),
+    TextToQA(outdir=result_path,text_key=text_key),
+    ParquetWriter(result_path)
+]
+pipeline.add_operations(ops)
+pipeline.execute()
+```
+
+#### 3. Finetune Data Pipeline - Downsize public finetune dataset
+
+```
+from pyrecdp.LLM import TextPipeline, ResumableTextPipeline
+from pyrecdp.primitives.operations import *
+
+import os
+pipeline = ResumableTextPipeline()
+pipeline.enable_statistics()
+ops = [
+    JsonlReader("{path-to-e2eAIOK}/RecDP/tests/data/alpaca/alpaca_data_50.jsonl"),
+    TextPrompt(dataset_name="alpaca", prompt_name="causal_llm_1"),
+    RandomSelect(fraction=0.3),
+    TextToxicity(),
+    TextDiversityIndicate(out_dir=out_dir, language="en", first_sent=False),
+    TextQualityScorer(model="gpt3"),
+    RougeScoreDedup(max_ratio=0.7, batch_size=10,score_store_path=os.path.join(out_dir,'RougeScorefiltered.parquet')),
+    ParquetWriter("ResumableTextPipeline_output")
+]
+pipeline.add_operations(ops)
+pipeline.execute()
+```
+
+#### 4. AutoHPO
 
 Low-Code configuration with automated operators parameter tuning, allowing user to transform their own raw data toward a high quality dataset with low-effort. We coupled data processing with Quality Analisys as evaluation metrics, which will estimate data's quality before actual model finetuning/inference.
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/intel/e2eAIOK/blob/main/RecDP/examples/notebooks/llmutils/pipeline_hpo.ipynb)
@@ -52,42 +138,6 @@ input_hpo_file = 'config/hpo.yaml'
 output_pipeline_file = "config/pipeline.yaml"
 
 text_pipeline_optimize(input_pipeline_file, output_pipeline_file, input_hpo_file)
-```
-
-
-# Getting Start
-
-## Deploy
-```
-DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-8-jre
-pip install pyrecdp --pre
-```
-
-## * run with pipeline
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/intel/e2eAIOK/blob/main/RecDP/examples/notebooks/llmutils/resumable_pipeline.ipynb) 
-```
-from pyrecdp.primitives.operations import *
-from pyrecdp.LLM import ResumableTextPipeline
-
-pipeline = ResumableTextPipeline()
-ops = [
-    JsonlReader("data/"),
-    URLFilter(),
-    LengthFilter(),
-    ProfanityFilter(),
-    TextFix(),
-    LanguageIdentify(),
-    PIIRemoval(),
-    PerfileParquetWriter("ResumableTextPipeline_output")
-]
-pipeline.add_operations(ops)
-pipeline.execute()
-```
-or
-```
-from pyrecdp.LLM import ResumableTextPipeline
-pipeline = ResumableTextPipeline("custom_llm_data_pipeline.yaml")
-ret = pipeline.execute()
 ```
 
 ## * run with individual component

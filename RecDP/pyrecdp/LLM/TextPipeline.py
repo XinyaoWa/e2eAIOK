@@ -1,8 +1,8 @@
-from pyrecdp.core import DiGraph
+from pyrecdp.core.di_graph import DiGraph
 from pyrecdp.core.pipeline import BasePipeline
 from pyrecdp.primitives.operations import Operation, BaseOperation
 from pyrecdp.primitives.operations.text_reader import DatasetReader, PerfileReader
-from pyrecdp.primitives.operations.text_writer import PerfileParquetWriter, PerfileJsonlWriter
+from pyrecdp.primitives.operations.text_writer import PerfileParquetWriter, PerfileJsonlWriter, ParquetWriter
 import logging
 from pyrecdp.core.utils import Timer, deepcopy
 from IPython.display import display
@@ -11,19 +11,22 @@ import types
 from ray.data import Dataset
 from pyspark.sql import DataFrame
 import ray
-from pyrecdp.core import SparkDataProcessor
+from pyrecdp.data_processor import DataProcessor as SparkDataProcessor
 import time
 import os
 import psutil
 from pyrecdp.primitives.operations.logging_utils import logger
+import json
 
 total_mem = int(psutil.virtual_memory().total * 0.6)
 total_cores = psutil.cpu_count(logical=False)
 
 
 class TextPipeline(BasePipeline):
-    def __init__(self, pipeline_file=None):
+    def __init__(self, engine_name='ray', pipeline_file=None):
         super().__init__()
+        self.engine_name = engine_name
+        self.ray_start_by_us = False
         if pipeline_file != None:
             self.import_from_json(pipeline_file) if pipeline_file.endswith(
                 '.json') else self.import_from_yaml(pipeline_file)
@@ -34,9 +37,10 @@ class TextPipeline(BasePipeline):
             self.add_operation(op)
 
     def __del__(self):
-        if hasattr(self, 'engine_name') and self.engine_name == 'ray':
-            if ray.is_initialized():
-                ray.shutdown()
+        if self.ray_start_by_us:
+            if hasattr(self, 'engine_name') and self.engine_name == 'ray':
+                if ray.is_initialized():
+                    ray.shutdown()
 
     def check_platform(self, executable_sequence):
         is_spark = True
@@ -51,7 +55,10 @@ class TextPipeline(BasePipeline):
             if op.support_spark:
                 spark_list.append(str(op))
         if is_ray:
-            return 'ray'
+            if self.engine_name == 'spark' and is_spark:
+                return 'spark'
+            else:
+                return 'ray'
         elif is_spark:
             return 'spark'
         else:
@@ -60,9 +67,27 @@ class TextPipeline(BasePipeline):
             return 'mixed'
 
     def optimize_execute_plan(self):
-        return
+        # Update Writer
+        output_dir = ""
+        for idx, op in self.pipeline.items():
+            if op.op in ['ParquetWriter', 'PerfileParquetWriter']:
+                output_dir = op.config['output_dir']
+            if op.op in ['JsonlWriter', 'PerfileJsonlWriter']:
+                output_dir = op.config['output_dir']
+            if op.op in ['DocumentIngestion']:
+                output_dir = f"TextPipeline_vectordatabase_{time.strftime('%Y%m%d%H%M%S')}"
+        if output_dir == "":
+            output_dir = f"TextPipeline_output_{time.strftime('%Y%m%d%H%M%S')}"
+            self.add_operation(ParquetWriter(output_dir=output_dir))
+        return output_dir
     
     def execute(self, ds=None):
+        output_dir = self.optimize_execute_plan()
+        os.makedirs(output_dir, exist_ok=True)
+        self.export(os.path.join(output_dir, "pipeline.json"))
+        self.plot(os.path.join(output_dir, "pipeline"))
+        logger.add(os.path.join(output_dir, "pipeline.log"))
+
         # prepare pipeline
         if not hasattr(self, 'executable_pipeline') or not hasattr(self, 'executable_sequence'):
             self.executable_pipeline, self.executable_sequence = self.create_executable_pipeline()
@@ -79,6 +104,7 @@ class TextPipeline(BasePipeline):
                     ray.init(object_store_memory=total_mem, num_cpus=total_cores)
                 except:
                     ray.init()
+                self.ray_start_by_us = True
 
             # execute
             with Timer(f"execute with ray"):
@@ -152,6 +178,9 @@ class TextPipeline(BasePipeline):
             if function_type == 'map':
                 self.pipeline[cur_idx] = Operation(
                     cur_idx, children, output=None, op="TextCustomerMap", config=config)
+            elif function_type == 'flatmap':
+                self.pipeline[cur_idx] = Operation(
+                    cur_idx, children, output=None, op="TextCustomerFlatMap", config=config)
             elif function_type == 'filter':
                 self.pipeline[cur_idx] = Operation(
                     cur_idx, children, output=None, op="TextCustomerFilter", config=config)
@@ -205,8 +234,8 @@ class TextPipeline(BasePipeline):
 
 class ResumableTextPipeline(TextPipeline):
     # Provide a pipeline for large dir. We will handle files one by one and resume when pipeline broken.
-    def __init__(self, pipeline_file=None):
-        super().__init__(pipeline_file)
+    def __init__(self, engine_name='ray', pipeline_file=None):
+        super().__init__(engine_name, pipeline_file)
         # Enabling this option will result in a decrease in execution speed
         self.statistics_flag = False
 
@@ -264,11 +293,22 @@ class ResumableTextPipeline(TextPipeline):
             if op.op in ['JsonlWriter', 'PerfileJsonlWriter']:
                 op.op = 'PerfileJsonlWriter'
                 output_dir = op.config['output_dir']
+            if op.op in ['DocumentIngestion']:
+                output_dir = f"ResumableTextPipeline_vectordatabase_{time.strftime('%Y%m%d%H%M%S')}"
         if output_dir == "":
             output_dir = f"ResumableTextPipeline_output_{time.strftime('%Y%m%d%H%M%S')}"
             self.add_operation(PerfileParquetWriter(output_dir=output_dir))
 
         return output_dir
+
+    def op_summary(self, op, output_dir):
+        summarize_result = op.summarize()
+        if isinstance(summarize_result, tuple):
+            logger.info(f"{op.__class__.__name__}: {summarize_result[1]}")
+            with open(os.path.join(output_dir, f"{op.__class__.__name__}-statistics"), "w+") as fout:
+                fout.write(json.dumps(summarize_result[0]))
+        else:
+            logger.info(f"{op.__class__.__name__}: {summarize_result}")
 
     def execute(self):
         # Fix pipeline
@@ -311,6 +351,7 @@ class ResumableTextPipeline(TextPipeline):
                     ray.init(object_store_memory=total_mem, num_cpus=total_cores)
                 except:
                     ray.init()
+                self.ray_start_by_us = True
 
             for op in executable_sequence:
                 if isinstance(op, PerfileReader):
@@ -344,7 +385,7 @@ class ResumableTextPipeline(TextPipeline):
                 done_files.append(status_tracker)
                 if self.statistics_flag:
                     for op in op_chain:
-                        logger.info(f"{op.__class__.__name__}: {op.summarize()}")
+                        self.op_summary(op, output_dir)
                 del ds_reader
         elif engine_name == 'spark':
             if not hasattr(self, 'rdp') or self.rdp is None:
@@ -362,7 +403,7 @@ class ResumableTextPipeline(TextPipeline):
                         break
                 if self.statistics_flag:
                     for op in op_chain:
-                        logger.info(f"{op.__class__.__name__}: {op.summarize()}")
+                        self.op_summary(op, output_dir)
                     op_chain = []
             
             # To process since Perfile Reader
@@ -401,7 +442,9 @@ class ResumableTextPipeline(TextPipeline):
                 done_files.append(status_tracker)
                 if self.statistics_flag:
                     for op in op_chain:
-                        logger.info(f"{op.__class__.__name__}: {op.summarize()}")
+                        self.op_summary(op, output_dir)
+                            
+
                 del ds_reader
         else:
             raise NotImplementedError(f"ResumableTextPipeline is not support {engine_name} yet")

@@ -2,11 +2,12 @@
 https://github.com/alibaba/data-juicer/blob/main/data_juicer/utils/model_utils.py
 """
 import os
+from typing import Callable, Any
 
-import wget
 from loguru import logger
 
 from .cache_utils import RECDP_MODELS_CACHE
+from .import_utils import check_availability_and_install
 
 # Default directory to store models
 MODEL_PATH = RECDP_MODELS_CACHE
@@ -15,23 +16,23 @@ MODEL_PATH = RECDP_MODELS_CACHE
 BACKUP_MODEL_LINKS = {
     # language identification model from fasttext
     'lid.176.bin':
-    'https://dl.fbaipublicfiles.com/fasttext/supervised-models/',
+        'https://dl.fbaipublicfiles.com/fasttext/supervised-models/',
 
     # tokenizer and language model for English from sentencepiece and KenLM
     '%s.sp.model':
-    'https://huggingface.co/edugp/kenlm/resolve/main/wikipedia/',
+        'https://huggingface.co/edugp/kenlm/resolve/main/wikipedia/',
     '%s.arpa.bin':
-    'https://huggingface.co/edugp/kenlm/resolve/main/wikipedia/',
+        'https://huggingface.co/edugp/kenlm/resolve/main/wikipedia/',
 
     # sentence split model from nltk punkt
     'punkt.%s.pickle':
-    'https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/'
-    'data_juicer/models/'
+        'https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/'
+        'data_juicer/models/'
 }
 
 # Default cached models links for downloading
 MODEL_LINKS = 'https://dail-wlcb.oss-cn-wulanchabu.aliyuncs.com/' \
-               'data_juicer/models/'
+              'data_juicer/models/'
 
 MODEL_ZOO = {}
 
@@ -53,30 +54,37 @@ def check_model(model_name, args=(), force=False):
     # check if the specified model exists. If it does not exist, download it
     true_model_name = model_name % args
     mdp = os.path.join(MODEL_PATH, true_model_name)
-    if force:
-        if os.path.exists(mdp):
+    if os.path.exists(mdp):
+        if force:
             os.remove(mdp)
             logger.info(
-                f'Model [{true_model_name}] invalid, force to downloading...')
+                f'Model [{true_model_name}] removed, force to downloading...')
+            download_nltk_model(mdp, model_name, true_model_name)
         else:
-            logger.info(
-                f'Model [{true_model_name}] not found . Downloading...')
-
-        try:
-            model_link = os.path.join(MODEL_LINKS, true_model_name)
-            wget.download(model_link, mdp, bar=None)
-        except:  # noqa: E722
-            try:
-                backup_model_link = os.path.join(
-                    BACKUP_MODEL_LINKS[model_name], true_model_name)
-                wget.download(backup_model_link, mdp, bar=None)
-            except:  # noqa: E722
-                logger.error(
-                    f'Downloading model [{true_model_name}] error. '
-                    f'Please retry later or download it into {MODEL_PATH} '
-                    f'manually from {model_link} or {backup_model_link} ')
-                exit(1)
+            return mdp
+    else:
+        logger.info(
+            f'Model [{true_model_name}] not found . Downloading...')
+        download_nltk_model(mdp, model_name, true_model_name)
     return mdp
+
+
+def download_nltk_model(mdp, model_name, true_model_name):
+    import wget
+    try:
+        model_link = os.path.join(MODEL_LINKS, true_model_name)
+        wget.download(model_link, mdp, bar=None)
+    except:  # noqa: E722
+        try:
+            backup_model_link = os.path.join(
+                BACKUP_MODEL_LINKS[model_name], true_model_name)
+            wget.download(backup_model_link, mdp, bar=None)
+        except:  # noqa: E722
+            logger.error(
+                f'Downloading model [{true_model_name}] error. '
+                f'Please retry later or download it into {MODEL_PATH} '
+                f'manually from {model_link} or {backup_model_link} ')
+            exit(1)
 
 
 def prepare_fasttext_model(model_name):
@@ -86,6 +94,7 @@ def prepare_fasttext_model(model_name):
     :param model_name: input model name
     :return: model instance.
     """
+    check_availability_and_install("fasttext==0.9.2")
     import fasttext
     logger.info('Loading fasttext language identification model...')
     try:
@@ -103,6 +112,7 @@ def prepare_sentencepiece_model(model_name, lang):
     :param lang: language to render model name
     :return: model instance.
     """
+    check_availability_and_install("sentencepiece")
     import sentencepiece
     logger.info('Loading sentencepiece model...')
     sentencepiece_model = sentencepiece.SentencePieceProcessor()
@@ -121,6 +131,7 @@ def prepare_kenlm_model(model_name, lang):
     :param lang: language to render model name
     :return: model instance.
     """
+    check_availability_and_install("kenlm")
     import kenlm
     logger.info('Loading kenlm language model...')
     try:
@@ -138,7 +149,7 @@ def prepare_nltk_model(model_name, lang):
     :param lang: language to render model name
     :return: model instance.
     """
-
+    check_availability_and_install("nltk")
     nltk_to_punkt = {
         'en': 'english',
         'fr': 'french',
@@ -172,6 +183,7 @@ def prepare_huggingface_tokenizer(tokenizer_name):
                                               trust_remote_code=True)
     return tokenizer
 
+
 def prepare_diversity_model(model_name, lang):
     """
     Prepare diversity model for specific language.
@@ -181,7 +193,6 @@ def prepare_diversity_model(model_name, lang):
         "en"]
     :return: corresponding diversity model
     """
-    import spacy
     assert lang in ['zh', 'en'], 'Diversity only support zh and en'
     model_name = model_name % lang
     logger.info(f'Loading spacy model [{model_name}]...')
@@ -199,18 +210,21 @@ def prepare_diversity_model(model_name, lang):
         return decompressed_model_path
 
     try:
+        import spacy
         diversity_model = spacy.load(
             decompress_model(check_model(compressed_model)))
     except:  # noqa: E722
+        import spacy
         diversity_model = spacy.load(
             decompress_model(check_model(compressed_model, force=True)))
     return diversity_model
 
 
-def prepare_model(lang='en', model_type='sentencepiece', model_key=None):
+def prepare_model(lang='en', model_type='sentencepiece', model_key=None,
+                  prepare_model_func: Callable[[str, str], Any] = None):
     """
     Prepare and load a model or a tokenizer from MODEL_ZOO.
-
+    :param prepare_model_func: a Callable function to prepare model
     :param lang: which lang model to load
     :param model_type: model or tokenizer type
     :param model_key: tokenizer name, only used when prepare HuggingFace
@@ -239,7 +253,10 @@ def prepare_model(lang='en', model_type='sentencepiece', model_key=None):
         elif model_type == 'huggingface':
             MODEL_ZOO[model_key] = model_func(model_key)
         else:
-            MODEL_ZOO[model_key] = model_func(model_name, lang)
+            if prepare_model_func is not None:
+                MODEL_ZOO[model_key] = prepare_model_func(model_name, lang)
+            else:
+                MODEL_ZOO[model_key] = model_func(model_name, lang)
     return model_key
 
 
