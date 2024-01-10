@@ -15,10 +15,9 @@ model_name_or_path=${DATA_PATH}"/"${model_name}
 model_best_structure=${DATA_PATH}"/"${model_name}"/best_model_structure.txt"
 model_save_path=${MODEL_SAVE_PATH}"/"${model_name}"_denas-lora"
 log_save_path=$LOG_PATH"/"${model_name}"_denas-lora-1epoch.log"
-WANDB_DISABLED=true python -u example/instruction_tuning_pipeline/finetune_qa_nomax.py \
+WANDB_DISABLED=true python -u example/instruction_tuning_pipeline/finetune_clm.py \
     --model_name_or_path $model_name_or_path \
     --train_file $TRAIN_FILE \
-    --dataset_concatenation \
     --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 4 \
     --do_train \
@@ -39,11 +38,10 @@ WANDB_DISABLED=true python -u example/instruction_tuning_pipeline/finetune_qa_no
     2>&1 | tee $log_save_path
 
 log_save_path_valid=$LOG_PATH"/"${model_name}"_denas-lora-1epoch-valid.log"
-WANDB_DISABLED=true python -u example/instruction_tuning_pipeline/finetune_qa_nomax.py \
+WANDB_DISABLED=true python -u example/instruction_tuning_pipeline/finetune_clm.py \
     --model_name_or_path $model_name_or_path \
     --train_file $TRAIN_FILE \
     --validation_file $VALID_FILE \
-    --dataset_concatenation \
     --per_device_train_batch_size 2 \
     --per_device_eval_batch_size 4 \
     --do_eval \

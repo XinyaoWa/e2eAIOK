@@ -1,0 +1,644 @@
+2023-12-19 15:57:08.526560: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2023-12-19 15:57:08.526602: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2023-12-19 15:57:08.526646: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2023-12-19 15:57:09.259873: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+Using the `WANDB_DISABLED` environment variable is deprecated and will be removed in v5. Use the --report_to flag to control the integrations used for logging result (for instance --report_to none).
+finetune_args is 
+ FinetuneArguments(lora_rank=8, lora_alpha=16, lora_dropout=0.05, lora_target_modules=None, adapter_layers=30, adapter_len=10, num_virtual_tokens=10, ptun_hidden_size=1024, peft='lora', resume_peft='', delta=None, profile=False, train_on_inputs=True, habana=False, debugs=True, save_merged_model=False, merge_model_code_dir='', load_in_8bit=True, input_sentence='', output_length_limit=20, prompt_type='viggo_textformat', prompt_file_viggo_textformat='/home/vmagent/app/LLM_datapre/data//textformat/data/viggo/prompt_textformat')
+2023-12-19 15:57:10,237 - __main__ - WARNING - Process rank: 0, device: cuda:0
+distributed training: True, 16-bits training: True
+2023-12-19 15:57:10,238 - __main__ - INFO - Training/evaluation parameters TrainingArguments(
+_n_gpu=1,
+adafactor=False,
+adam_beta1=0.9,
+adam_beta2=0.999,
+adam_epsilon=1e-08,
+auto_find_batch_size=False,
+bf16=False,
+bf16_full_eval=False,
+data_seed=None,
+dataloader_drop_last=False,
+dataloader_num_workers=0,
+dataloader_pin_memory=True,
+ddp_backend=None,
+ddp_broadcast_buffers=None,
+ddp_bucket_cap_mb=None,
+ddp_find_unused_parameters=None,
+ddp_timeout=1800,
+debug=[],
+deepspeed=None,
+disable_tqdm=False,
+dispatch_batches=None,
+do_eval=False,
+do_predict=False,
+do_train=True,
+eval_accumulation_steps=None,
+eval_delay=0,
+eval_steps=None,
+evaluation_strategy=no,
+fp16=True,
+fp16_backend=auto,
+fp16_full_eval=False,
+fp16_opt_level=O1,
+fsdp=[],
+fsdp_config={'min_num_params': 0, 'xla': False, 'xla_fsdp_grad_ckpt': False},
+fsdp_min_num_params=0,
+fsdp_transformer_layer_cls_to_wrap=None,
+full_determinism=False,
+gradient_accumulation_steps=8,
+gradient_checkpointing=False,
+gradient_checkpointing_kwargs=None,
+greater_is_better=None,
+group_by_length=False,
+half_precision_backend=auto,
+hub_always_push=False,
+hub_model_id=None,
+hub_private_repo=False,
+hub_strategy=every_save,
+hub_token=<HUB_TOKEN>,
+ignore_data_skip=False,
+include_inputs_for_metrics=False,
+include_num_input_tokens_seen=False,
+include_tokens_per_second=False,
+jit_mode_eval=False,
+label_names=None,
+label_smoothing_factor=0.0,
+learning_rate=0.0001,
+length_column_name=length,
+load_best_model_at_end=False,
+local_rank=0,
+log_level=info,
+log_level_replica=warning,
+log_on_each_node=True,
+logging_dir=/home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora/runs/Dec19_15-57-10_vsr134,
+logging_first_step=False,
+logging_nan_inf_filter=True,
+logging_steps=100,
+logging_strategy=steps,
+lr_scheduler_kwargs={},
+lr_scheduler_type=linear,
+max_grad_norm=1.0,
+max_steps=-1,
+metric_for_best_model=None,
+mp_parameters=,
+neftune_noise_alpha=None,
+no_cuda=False,
+num_train_epochs=1.0,
+optim=adamw_torch,
+optim_args=None,
+output_dir=/home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora,
+overwrite_output_dir=False,
+past_index=-1,
+per_device_eval_batch_size=8,
+per_device_train_batch_size=1,
+prediction_loss_only=False,
+push_to_hub=False,
+push_to_hub_model_id=None,
+push_to_hub_organization=None,
+push_to_hub_token=<PUSH_TO_HUB_TOKEN>,
+ray_scope=last,
+remove_unused_columns=True,
+report_to=['tensorboard', 'codecarbon'],
+resume_from_checkpoint=None,
+run_name=/home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora,
+save_on_each_node=False,
+save_safetensors=True,
+save_steps=500,
+save_strategy=epoch,
+save_total_limit=1,
+seed=42,
+skip_memory_metrics=True,
+split_batches=False,
+tf32=None,
+torch_compile=False,
+torch_compile_backend=None,
+torch_compile_mode=None,
+torchdynamo=None,
+tpu_metrics_debug=False,
+tpu_num_cores=None,
+use_cpu=False,
+use_ipex=False,
+use_legacy_prediction_loop=False,
+use_mps_device=False,
+warmup_ratio=0.0,
+warmup_steps=0,
+weight_decay=0.0,
+)
+[INFO|configuration_utils.py:715] 2023-12-19 15:57:10,238 >> loading configuration file /home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf/config.json
+[INFO|configuration_utils.py:777] 2023-12-19 15:57:10,239 >> Model config LlamaConfig {
+  "_name_or_path": "/home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf",
+  "architectures": [
+    "LlamaForCausalLM"
+  ],
+  "attention_bias": false,
+  "attention_dropout": 0.0,
+  "bos_token_id": 1,
+  "eos_token_id": 2,
+  "hidden_act": "silu",
+  "hidden_size": 4096,
+  "initializer_range": 0.02,
+  "intermediate_size": 11008,
+  "max_position_embeddings": 4096,
+  "model_type": "llama",
+  "num_attention_heads": 32,
+  "num_hidden_layers": 32,
+  "num_key_value_heads": 32,
+  "pretraining_tp": 1,
+  "rms_norm_eps": 1e-05,
+  "rope_scaling": null,
+  "rope_theta": 10000.0,
+  "tie_word_embeddings": false,
+  "torch_dtype": "float16",
+  "transformers_version": "4.36.0.dev0",
+  "use_cache": true,
+  "vocab_size": 32000
+}
+
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:57:10,240 >> loading file tokenizer.model
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:57:10,241 >> loading file tokenizer.json
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:57:10,241 >> loading file added_tokens.json
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:57:10,241 >> loading file special_tokens_map.json
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:57:10,241 >> loading file tokenizer_config.json
+/opt/conda/lib/python3.10/site-packages/datasets/load.py:2069: FutureWarning: 'use_auth_token' was deprecated in favor of 'token' in version 2.14.0 and will be removed in 3.0.0.
+You can remove this warning by passing 'token=None' instead.
+  warnings.warn(
+{'source': ['Given a target sentence construct the underlying meaning representation of the input sentence as a single function with attributes and attribute values. This function should describe the target string accurately and the function must be one of the following [\'inform\', \'request\', \'give_opinion\', \'confirm\', \'verify_attribute\', \'suggest\', \'request_explanation\', \'recommend\', \'request_attribute\'] .\n\nThe attributes must be one of the following: [\'name\', \'exp_release_date\', \'release_year\', \'developer\', \'esrb\', \'rating\', \'genres\', \'player_perspective\', \'has_multiplayer\', \'platforms\', \'available_on_steam\', \'has_linux_release\', \'has_mac_release\', \'specifier\'] The order your list the attributes within the function must follow the order listed above. For example the \'name\' attribute must always come  before the \'exp_release_date\' attribute, and so forth.\n\nFor each attribute, fill in the corresponding value of the attribute within brackets. A couple of examples are below. Note: you are to output the string after "Output: ". Do not include "Output: " in your answer. Do not give any other sentence except the required Output.\n\nExample 1)\nSentence: Dirt: Showdown from 2012 is a sport racing game for the PlayStation, Xbox, PC rated E 10+ (for Everyone 10 and Older). \nIt\'s not available on Steam, Linux, or Mac.\nOutput: inform(name[Dirt: Showdown], release_year[2012], esrb[E 10+ (for Everyone 10 and Older)], genres[driving/racing, sport],\nplatforms[PlayStation, Xbox, PC], available_on_steam[no], has_linux_release[no], has_mac_release[no])\n\nExample 2) \nSentence: Were there even any terrible games in 2014?\nOutput: request(release_year[2014], specifier[terrible])\n\nExample 3)\nSentence: Adventure games that combine platforming and puzzles can be frustrating to play, but the side view perspective is \nperfect for them. That\'s why I enjoyed playing Little Nightmares.\nOutput: give_opinion(name[Little Nightmares], rating[good], genres[adventure, platformer, puzzle], player_perspective[side view])\n\nExample 4)\nSentence: Since we\'re on the subject of games developed by Telltale Games, I\'m wondering, have you played The Wolf Among Us?\nOutput: recommend(name[The Wolf Among Us], developer[Telltale Games])\n\nExample 5) \nSentence: Layers of Fear, the indie first person point-and-click adventure game?\nOutput: confirm(name[Layers of Fear], genres[adventure, indie, point-and-click], player_perspective[first person])\t\n\nExample 6) \nSentence: I bet you like it when you can play games on Steam, like Worms: Reloaded, right?\t\nOutput: suggest(name[Worms: Reloaded], available_on_steam[yes])\n\nExample 7)\nSentence: I recall you saying that you really enjoyed The Legend of Zelda: Ocarina of Time. Are you typically a big fan of games\non Nintendo rated E (for Everyone)?\t\nOutput: verify_attribute(name[The Legend of Zelda: Ocarina of Time], esrb[E (for Everyone)], rating[excellent], platforms[Nintendo])\n\nExample 8)\nSentence: So what is it about the games that were released in 2005 that you find so excellent?\t\nOutput: request_explanation(release_year[2005], rating[excellent])\n\nExample 9)\nSentence: Do you think Mac is a better gaming platform than others?\nOutput: request_attribute(has_mac_release[])\n\nGive the output for the following sentence:\n\nDirt: Showdown from 2012 is a sport racing game for the PlayStation, Xbox, PC rated E 10+ (for Everyone 10 and Older). It\'s not available on Steam, Linux, or Mac.\nOutput: \n'], 'target': ['inform(name[Dirt: Showdown], release_year[2012], esrb[E 10+ (for Everyone 10 and Older)], genres[driving/racing, sport], platforms[PlayStation, Xbox, PC], available_on_steam[no], has_linux_release[no], has_mac_release[no])']}
+[INFO|modeling_utils.py:2735] 2023-12-19 15:57:12,131 >> The device_map was not initialized. Setting device_map to {'':torch.cuda.current_device()}. If you want to use the model for inference, please set device_map ='auto' 
+[INFO|modeling_utils.py:3118] 2023-12-19 15:57:12,131 >> loading weights file /home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf/model.safetensors.index.json
+[INFO|modeling_utils.py:1222] 2023-12-19 15:57:12,131 >> Instantiating LlamaForCausalLM model under default dtype torch.float16.
+[INFO|configuration_utils.py:796] 2023-12-19 15:57:12,132 >> Generate config GenerationConfig {
+  "bos_token_id": 1,
+  "eos_token_id": 2
+}
+
+[INFO|modeling_utils.py:3255] 2023-12-19 15:57:12,338 >> Detected 8-bit loading: activating 8-bit loading for this model
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:05<00:05,  5.53s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:06<00:00,  3.04s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:06<00:00,  3.41s/it]
+[INFO|modeling_utils.py:3950] 2023-12-19 15:57:19,384 >> All model checkpoint weights were used when initializing LlamaForCausalLM.
+
+[INFO|modeling_utils.py:3958] 2023-12-19 15:57:19,384 >> All the weights of LlamaForCausalLM were initialized from the model checkpoint at /home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf.
+If your task is similar to the task the model of the checkpoint was trained on, you can already use LlamaForCausalLM for predictions without further training.
+[INFO|configuration_utils.py:749] 2023-12-19 15:57:19,387 >> loading configuration file /home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf/generation_config.json
+[INFO|configuration_utils.py:796] 2023-12-19 15:57:19,387 >> Generate config GenerationConfig {
+  "bos_token_id": 1,
+  "do_sample": true,
+  "eos_token_id": 2,
+  "max_length": 4096,
+  "pad_token_id": 0,
+  "temperature": 0.6,
+  "top_p": 0.9
+}
+
+2023-12-19 15:57:19,526 - __main__ - INFO - Using data collator of type DataCollatorForSeq2Seq
+2023-12-19 15:57:26,903 - __main__ - INFO - ***original optimized model parameter***
+trainable params: 4,194,304 || all params: 6,742,609,920 || trainable%: 0.06220594176090199
+[INFO|trainer.py:593] 2023-12-19 15:57:27,025 >> Using auto half precision backend
+/opt/conda/lib/python3.10/site-packages/tzlocal/unix.py:193: UserWarning: Can not find any timezone configuration, defaulting to UTC.
+  warnings.warn("Can not find any timezone configuration, defaulting to UTC.")
+2023-12-19 15:57:27,032 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2023-12-19 15:57:27,032 - __main__ - INFO - *** Training ***
+[INFO|trainer.py:738] 2023-12-19 15:57:27,344 >> The following columns in the training set don't have a corresponding argument in `PeftModelForCausalLM.forward` and have been ignored: prompt_sources, prompt_targets. If prompt_sources, prompt_targets are not expected by `PeftModelForCausalLM.forward`,  you can safely ignore this message.
+[INFO|trainer.py:1724] 2023-12-19 15:57:27,356 >> ***** Running training *****
+[INFO|trainer.py:1725] 2023-12-19 15:57:27,356 >>   Num examples = 16
+[INFO|trainer.py:1726] 2023-12-19 15:57:27,356 >>   Num Epochs = 1
+[INFO|trainer.py:1727] 2023-12-19 15:57:27,356 >>   Instantaneous batch size per device = 1
+[INFO|trainer.py:1730] 2023-12-19 15:57:27,356 >>   Total train batch size (w. parallel, distributed & accumulation) = 8
+[INFO|trainer.py:1731] 2023-12-19 15:57:27,356 >>   Gradient Accumulation steps = 8
+[INFO|trainer.py:1732] 2023-12-19 15:57:27,356 >>   Total optimization steps = 2
+[INFO|trainer.py:1733] 2023-12-19 15:57:27,358 >>   Number of trainable parameters = 4,194,304
+2023-12-19 15:57:27,362 - apscheduler.scheduler - INFO - Added job "EmissionsTracker._measure_power" to job store "default"
+2023-12-19 15:57:27,362 - apscheduler.scheduler - INFO - Scheduler started
+  0%|          | 0/2 [00:00<?, ?it/s][WARNING|logging.py:314] 2023-12-19 15:57:27,368 >> You're using a LlamaTokenizerFast tokenizer. Please note that with a fast tokenizer, using the `__call__` method is faster than using a method to encode the text followed by a call to the `pad` method to get a padded encoding.
+ 50%|█████     | 1/2 [00:08<00:08,  8.16s/it]2023-12-19 15:57:42,033 - apscheduler.executors.default - INFO - Running job "EmissionsTracker._measure_power (trigger: interval[0:00:15], next run at: 2023-12-19 15:57:42 UTC)" (scheduled at 2023-12-19 15:57:42.032085+00:00)
+2023-12-19 15:57:42,050 - apscheduler.executors.default - INFO - Job "EmissionsTracker._measure_power (trigger: interval[0:00:15], next run at: 2023-12-19 15:57:57 UTC)" executed successfully
+100%|██████████| 2/2 [00:15<00:00,  7.87s/it][INFO|trainer.py:2896] 2023-12-19 15:57:43,190 >> Saving model checkpoint to /home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora/checkpoint-2
+[INFO|tokenization_utils_base.py:2434] 2023-12-19 15:57:43,244 >> tokenizer config file saved in /home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora/checkpoint-2/tokenizer_config.json
+[INFO|tokenization_utils_base.py:2443] 2023-12-19 15:57:43,244 >> Special tokens file saved in /home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora/checkpoint-2/special_tokens_map.json
+[INFO|trainer.py:1967] 2023-12-19 15:57:43,357 >> 
+
+Training completed. Do not forget to share your model on huggingface.co/models =)
+
+
+                                             {'train_runtime': 15.9995, 'train_samples_per_second': 1.0, 'train_steps_per_second': 0.125, 'train_loss': 1.7000401020050049, 'epoch': 1.0}
+100%|██████████| 2/2 [00:15<00:00,  7.87s/it]2023-12-19 15:57:43,360 - apscheduler.scheduler - INFO - Scheduler has been shut down
+100%|██████████| 2/2 [00:20<00:00, 10.01s/it]
+2023-12-19 15:57:53.094103: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2023-12-19 15:57:53.094149: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2023-12-19 15:57:53.094179: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2023-12-19 15:57:53.918130: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+Using the `WANDB_DISABLED` environment variable is deprecated and will be removed in v5. Use the --report_to flag to control the integrations used for logging result (for instance --report_to none).
+finetune_args is 
+ FinetuneArguments(lora_rank=8, lora_alpha=16, lora_dropout=0.05, lora_target_modules=None, adapter_layers=30, adapter_len=10, num_virtual_tokens=10, ptun_hidden_size=1024, peft='lora', resume_peft='/home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora', delta=None, profile=False, train_on_inputs=True, habana=False, debugs=True, save_merged_model=False, merge_model_code_dir='', load_in_8bit=False, input_sentence='', output_length_limit=20, prompt_type='viggo_textformat', prompt_file_viggo_textformat='/home/vmagent/app/LLM_datapre/data//textformat/data/viggo/prompt_textformat')
+2023-12-19 15:57:54,997 - __main__ - WARNING - Process rank: 0, device: cuda:0
+distributed training: True, 16-bits training: False
+2023-12-19 15:57:54,997 - __main__ - INFO - Training/evaluation parameters TrainingArguments(
+_n_gpu=1,
+adafactor=False,
+adam_beta1=0.9,
+adam_beta2=0.999,
+adam_epsilon=1e-08,
+auto_find_batch_size=False,
+bf16=False,
+bf16_full_eval=False,
+data_seed=None,
+dataloader_drop_last=False,
+dataloader_num_workers=0,
+dataloader_pin_memory=True,
+ddp_backend=None,
+ddp_broadcast_buffers=None,
+ddp_bucket_cap_mb=None,
+ddp_find_unused_parameters=None,
+ddp_timeout=1800,
+debug=[],
+deepspeed=None,
+disable_tqdm=False,
+dispatch_batches=None,
+do_eval=True,
+do_predict=False,
+do_train=False,
+eval_accumulation_steps=None,
+eval_delay=0,
+eval_steps=None,
+evaluation_strategy=no,
+fp16=False,
+fp16_backend=auto,
+fp16_full_eval=False,
+fp16_opt_level=O1,
+fsdp=[],
+fsdp_config={'min_num_params': 0, 'xla': False, 'xla_fsdp_grad_ckpt': False},
+fsdp_min_num_params=0,
+fsdp_transformer_layer_cls_to_wrap=None,
+full_determinism=False,
+gradient_accumulation_steps=1,
+gradient_checkpointing=False,
+gradient_checkpointing_kwargs=None,
+greater_is_better=None,
+group_by_length=False,
+half_precision_backend=auto,
+hub_always_push=False,
+hub_model_id=None,
+hub_private_repo=False,
+hub_strategy=every_save,
+hub_token=<HUB_TOKEN>,
+ignore_data_skip=False,
+include_inputs_for_metrics=False,
+include_num_input_tokens_seen=False,
+include_tokens_per_second=False,
+jit_mode_eval=False,
+label_names=None,
+label_smoothing_factor=0.0,
+learning_rate=5e-05,
+length_column_name=length,
+load_best_model_at_end=False,
+local_rank=0,
+log_level=info,
+log_level_replica=warning,
+log_on_each_node=True,
+logging_dir=/home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora/runs/Dec19_15-57-54_vsr134,
+logging_first_step=False,
+logging_nan_inf_filter=True,
+logging_steps=100,
+logging_strategy=steps,
+lr_scheduler_kwargs={},
+lr_scheduler_type=linear,
+max_grad_norm=1.0,
+max_steps=-1,
+metric_for_best_model=None,
+mp_parameters=,
+neftune_noise_alpha=None,
+no_cuda=False,
+num_train_epochs=3.0,
+optim=adamw_torch,
+optim_args=None,
+output_dir=/home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora,
+overwrite_output_dir=False,
+past_index=-1,
+per_device_eval_batch_size=1,
+per_device_train_batch_size=1,
+prediction_loss_only=False,
+push_to_hub=False,
+push_to_hub_model_id=None,
+push_to_hub_organization=None,
+push_to_hub_token=<PUSH_TO_HUB_TOKEN>,
+ray_scope=last,
+remove_unused_columns=True,
+report_to=['tensorboard', 'codecarbon'],
+resume_from_checkpoint=None,
+run_name=/home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora,
+save_on_each_node=False,
+save_safetensors=True,
+save_steps=500,
+save_strategy=steps,
+save_total_limit=1,
+seed=42,
+skip_memory_metrics=True,
+split_batches=False,
+tf32=None,
+torch_compile=False,
+torch_compile_backend=None,
+torch_compile_mode=None,
+torchdynamo=None,
+tpu_metrics_debug=False,
+tpu_num_cores=None,
+use_cpu=False,
+use_ipex=False,
+use_legacy_prediction_loop=False,
+use_mps_device=False,
+warmup_ratio=0.0,
+warmup_steps=0,
+weight_decay=0.0,
+)
+[INFO|configuration_utils.py:715] 2023-12-19 15:57:54,998 >> loading configuration file /home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf/config.json
+[INFO|configuration_utils.py:777] 2023-12-19 15:57:54,999 >> Model config LlamaConfig {
+  "_name_or_path": "/home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf",
+  "architectures": [
+    "LlamaForCausalLM"
+  ],
+  "attention_bias": false,
+  "attention_dropout": 0.0,
+  "bos_token_id": 1,
+  "eos_token_id": 2,
+  "hidden_act": "silu",
+  "hidden_size": 4096,
+  "initializer_range": 0.02,
+  "intermediate_size": 11008,
+  "max_position_embeddings": 4096,
+  "model_type": "llama",
+  "num_attention_heads": 32,
+  "num_hidden_layers": 32,
+  "num_key_value_heads": 32,
+  "pretraining_tp": 1,
+  "rms_norm_eps": 1e-05,
+  "rope_scaling": null,
+  "rope_theta": 10000.0,
+  "tie_word_embeddings": false,
+  "torch_dtype": "float16",
+  "transformers_version": "4.36.0.dev0",
+  "use_cache": true,
+  "vocab_size": 32000
+}
+
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:57:55,001 >> loading file tokenizer.model
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:57:55,001 >> loading file tokenizer.json
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:57:55,001 >> loading file added_tokens.json
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:57:55,001 >> loading file special_tokens_map.json
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:57:55,001 >> loading file tokenizer_config.json
+/opt/conda/lib/python3.10/site-packages/datasets/load.py:2069: FutureWarning: 'use_auth_token' was deprecated in favor of 'token' in version 2.14.0 and will be removed in 3.0.0.
+You can remove this warning by passing 'token=None' instead.
+  warnings.warn(
+{'source': ['Given a target sentence construct the underlying meaning representation of the input sentence as a single function with attributes and attribute values. This function should describe the target string accurately and the function must be one of the following [\'inform\', \'request\', \'give_opinion\', \'confirm\', \'verify_attribute\', \'suggest\', \'request_explanation\', \'recommend\', \'request_attribute\'] .\n\nThe attributes must be one of the following: [\'name\', \'exp_release_date\', \'release_year\', \'developer\', \'esrb\', \'rating\', \'genres\', \'player_perspective\', \'has_multiplayer\', \'platforms\', \'available_on_steam\', \'has_linux_release\', \'has_mac_release\', \'specifier\'] The order your list the attributes within the function must follow the order listed above. For example the \'name\' attribute must always come  before the \'exp_release_date\' attribute, and so forth.\n\nFor each attribute, fill in the corresponding value of the attribute within brackets. A couple of examples are below. Note: you are to output the string after "Output: ". Do not include "Output: " in your answer. Do not give any other sentence except the required Output.\n\nExample 1)\nSentence: Dirt: Showdown from 2012 is a sport racing game for the PlayStation, Xbox, PC rated E 10+ (for Everyone 10 and Older). \nIt\'s not available on Steam, Linux, or Mac.\nOutput: inform(name[Dirt: Showdown], release_year[2012], esrb[E 10+ (for Everyone 10 and Older)], genres[driving/racing, sport],\nplatforms[PlayStation, Xbox, PC], available_on_steam[no], has_linux_release[no], has_mac_release[no])\n\nExample 2) \nSentence: Were there even any terrible games in 2014?\nOutput: request(release_year[2014], specifier[terrible])\n\nExample 3)\nSentence: Adventure games that combine platforming and puzzles can be frustrating to play, but the side view perspective is \nperfect for them. That\'s why I enjoyed playing Little Nightmares.\nOutput: give_opinion(name[Little Nightmares], rating[good], genres[adventure, platformer, puzzle], player_perspective[side view])\n\nExample 4)\nSentence: Since we\'re on the subject of games developed by Telltale Games, I\'m wondering, have you played The Wolf Among Us?\nOutput: recommend(name[The Wolf Among Us], developer[Telltale Games])\n\nExample 5) \nSentence: Layers of Fear, the indie first person point-and-click adventure game?\nOutput: confirm(name[Layers of Fear], genres[adventure, indie, point-and-click], player_perspective[first person])\t\n\nExample 6) \nSentence: I bet you like it when you can play games on Steam, like Worms: Reloaded, right?\t\nOutput: suggest(name[Worms: Reloaded], available_on_steam[yes])\n\nExample 7)\nSentence: I recall you saying that you really enjoyed The Legend of Zelda: Ocarina of Time. Are you typically a big fan of games\non Nintendo rated E (for Everyone)?\t\nOutput: verify_attribute(name[The Legend of Zelda: Ocarina of Time], esrb[E (for Everyone)], rating[excellent], platforms[Nintendo])\n\nExample 8)\nSentence: So what is it about the games that were released in 2005 that you find so excellent?\t\nOutput: request_explanation(release_year[2005], rating[excellent])\n\nExample 9)\nSentence: Do you think Mac is a better gaming platform than others?\nOutput: request_attribute(has_mac_release[])\n\nGive the output for the following sentence:\n\nDirt: Showdown from 2012 is a sport racing game for the PlayStation, Xbox, PC rated E 10+ (for Everyone 10 and Older). It\'s not available on Steam, Linux, or Mac.\nOutput: \n'], 'target': ['inform(name[Dirt: Showdown], release_year[2012], esrb[E 10+ (for Everyone 10 and Older)], genres[driving/racing, sport], platforms[PlayStation, Xbox, PC], available_on_steam[no], has_linux_release[no], has_mac_release[no])']}
+{'source': ['Given a target sentence construct the underlying meaning representation of the input sentence as a single function with attributes and attribute values. This function should describe the target string accurately and the function must be one of the following [\'inform\', \'request\', \'give_opinion\', \'confirm\', \'verify_attribute\', \'suggest\', \'request_explanation\', \'recommend\', \'request_attribute\'] .\n\nThe attributes must be one of the following: [\'name\', \'exp_release_date\', \'release_year\', \'developer\', \'esrb\', \'rating\', \'genres\', \'player_perspective\', \'has_multiplayer\', \'platforms\', \'available_on_steam\', \'has_linux_release\', \'has_mac_release\', \'specifier\'] The order your list the attributes within the function must follow the order listed above. For example the \'name\' attribute must always come  before the \'exp_release_date\' attribute, and so forth.\n\nFor each attribute, fill in the corresponding value of the attribute within brackets. A couple of examples are below. Note: you are to output the string after "Output: ". Do not include "Output: " in your answer. Do not give any other sentence except the required Output.\n\nExample 1)\nSentence: Dirt: Showdown from 2012 is a sport racing game for the PlayStation, Xbox, PC rated E 10+ (for Everyone 10 and Older). \nIt\'s not available on Steam, Linux, or Mac.\nOutput: inform(name[Dirt: Showdown], release_year[2012], esrb[E 10+ (for Everyone 10 and Older)], genres[driving/racing, sport],\nplatforms[PlayStation, Xbox, PC], available_on_steam[no], has_linux_release[no], has_mac_release[no])\n\nExample 2) \nSentence: Were there even any terrible games in 2014?\nOutput: request(release_year[2014], specifier[terrible])\n\nExample 3)\nSentence: Adventure games that combine platforming and puzzles can be frustrating to play, but the side view perspective is \nperfect for them. That\'s why I enjoyed playing Little Nightmares.\nOutput: give_opinion(name[Little Nightmares], rating[good], genres[adventure, platformer, puzzle], player_perspective[side view])\n\nExample 4)\nSentence: Since we\'re on the subject of games developed by Telltale Games, I\'m wondering, have you played The Wolf Among Us?\nOutput: recommend(name[The Wolf Among Us], developer[Telltale Games])\n\nExample 5) \nSentence: Layers of Fear, the indie first person point-and-click adventure game?\nOutput: confirm(name[Layers of Fear], genres[adventure, indie, point-and-click], player_perspective[first person])\t\n\nExample 6) \nSentence: I bet you like it when you can play games on Steam, like Worms: Reloaded, right?\t\nOutput: suggest(name[Worms: Reloaded], available_on_steam[yes])\n\nExample 7)\nSentence: I recall you saying that you really enjoyed The Legend of Zelda: Ocarina of Time. Are you typically a big fan of games\non Nintendo rated E (for Everyone)?\t\nOutput: verify_attribute(name[The Legend of Zelda: Ocarina of Time], esrb[E (for Everyone)], rating[excellent], platforms[Nintendo])\n\nExample 8)\nSentence: So what is it about the games that were released in 2005 that you find so excellent?\t\nOutput: request_explanation(release_year[2005], rating[excellent])\n\nExample 9)\nSentence: Do you think Mac is a better gaming platform than others?\nOutput: request_attribute(has_mac_release[])\n\nGive the output for the following sentence:\n\nSpellForce 3 is a pretty bad game. The developer Grimlore Games is clearly a bunch of no-talent hacks, and 2017 was a terrible year for games anyway.\nOutput: \n'], 'target': ['give_opinion(name[SpellForce 3], release_year[2017], developer[Grimlore Games], rating[poor])']}
+[INFO|modeling_utils.py:3118] 2023-12-19 15:57:57,103 >> loading weights file /home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf/model.safetensors.index.json
+[INFO|configuration_utils.py:796] 2023-12-19 15:57:57,104 >> Generate config GenerationConfig {
+  "bos_token_id": 1,
+  "eos_token_id": 2
+}
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:02<00:02,  2.14s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.42s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:03<00:00,  1.53s/it]
+[INFO|modeling_utils.py:3950] 2023-12-19 15:58:00,373 >> All model checkpoint weights were used when initializing LlamaForCausalLM.
+
+[INFO|modeling_utils.py:3958] 2023-12-19 15:58:00,373 >> All the weights of LlamaForCausalLM were initialized from the model checkpoint at /home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf.
+If your task is similar to the task the model of the checkpoint was trained on, you can already use LlamaForCausalLM for predictions without further training.
+[INFO|configuration_utils.py:749] 2023-12-19 15:58:00,376 >> loading configuration file /home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf/generation_config.json
+[INFO|configuration_utils.py:796] 2023-12-19 15:58:00,376 >> Generate config GenerationConfig {
+  "bos_token_id": 1,
+  "do_sample": true,
+  "eos_token_id": 2,
+  "max_length": 4096,
+  "pad_token_id": 0,
+  "temperature": 0.6,
+  "top_p": 0.9
+}
+
+2023-12-19 15:58:00,448 - __main__ - INFO - Using data collator of type DataCollatorForSeq2Seq
+2023-12-19 15:58:15,539 - __main__ - INFO - ***original optimized model parameter***
+trainable params: 0 || all params: 6,742,609,920 || trainable%: 0.0
+/opt/conda/lib/python3.10/site-packages/tzlocal/unix.py:193: UserWarning: Can not find any timezone configuration, defaulting to UTC.
+  warnings.warn("Can not find any timezone configuration, defaulting to UTC.")
+2023-12-19 15:58:34,319 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2023-12-19 15:58:34,319 - __main__ - INFO - *** Evaluate ***
+[INFO|trainer.py:738] 2023-12-19 15:58:34,319 >> The following columns in the evaluation set don't have a corresponding argument in `PeftModelForCausalLM.forward` and have been ignored: prompt_sources, prompt_targets. If prompt_sources, prompt_targets are not expected by `PeftModelForCausalLM.forward`,  you can safely ignore this message.
+[INFO|trainer.py:3173] 2023-12-19 15:58:34,328 >> ***** Running Evaluation *****
+[INFO|trainer.py:3175] 2023-12-19 15:58:34,329 >>   Num examples = 16
+[INFO|trainer.py:3178] 2023-12-19 15:58:34,329 >>   Batch size = 1
+[WARNING|logging.py:314] 2023-12-19 15:58:34,333 >> You're using a LlamaTokenizerFast tokenizer. Please note that with a fast tokenizer, using the `__call__` method is faster than using a method to encode the text followed by a call to the `pad` method to get a padded encoding.
+  0%|          | 0/16 [00:00<?, ?it/s] 12%|█▎        | 2/16 [00:01<00:09,  1.54it/s] 19%|█▉        | 3/16 [00:02<00:11,  1.09it/s] 25%|██▌       | 4/16 [00:03<00:12,  1.06s/it] 31%|███▏      | 5/16 [00:05<00:12,  1.14s/it] 38%|███▊      | 6/16 [00:06<00:11,  1.20s/it] 44%|████▍     | 7/16 [00:07<00:11,  1.23s/it] 50%|█████     | 8/16 [00:09<00:10,  1.25s/it] 56%|█████▋    | 9/16 [00:10<00:08,  1.26s/it] 62%|██████▎   | 10/16 [00:11<00:07,  1.27s/it] 69%|██████▉   | 11/16 [00:12<00:06,  1.26s/it] 75%|███████▌  | 12/16 [00:14<00:04,  1.24s/it] 81%|████████▏ | 13/16 [00:15<00:03,  1.24s/it] 88%|████████▊ | 14/16 [00:16<00:02,  1.25s/it] 94%|█████████▍| 15/16 [00:17<00:01,  1.27s/it]100%|██████████| 16/16 [00:19<00:00,  1.26s/it]100%|██████████| 16/16 [00:19<00:00,  1.24s/it]
+***** eval metrics *****
+  eval_loss               =     1.7225
+  eval_runtime            = 0:00:20.95
+  eval_samples            =         16
+  eval_samples_per_second =      0.763
+  eval_steps_per_second   =      0.763
+  eval_tokens             =      16752
+2023-12-19 15:59:00.715129: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2023-12-19 15:59:00.715170: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2023-12-19 15:59:00.715196: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2023-12-19 15:59:01.437665: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+Using the `WANDB_DISABLED` environment variable is deprecated and will be removed in v5. Use the --report_to flag to control the integrations used for logging result (for instance --report_to none).
+finetune_args is 
+ FinetuneArguments(lora_rank=8, lora_alpha=16, lora_dropout=0.05, lora_target_modules=None, adapter_layers=30, adapter_len=10, num_virtual_tokens=10, ptun_hidden_size=1024, peft='lora', resume_peft='/home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora', delta=None, profile=False, train_on_inputs=True, habana=False, debugs=True, save_merged_model=True, merge_model_code_dir='', load_in_8bit=False, input_sentence='', output_length_limit=20, prompt_type='viggo_textformat', prompt_file_viggo_textformat='/home/vmagent/app/LLM_datapre/data//textformat/data/viggo/prompt_textformat')
+2023-12-19 15:59:02,415 - __main__ - WARNING - Process rank: 0, device: cuda:0
+distributed training: True, 16-bits training: True
+2023-12-19 15:59:02,416 - __main__ - INFO - Training/evaluation parameters TrainingArguments(
+_n_gpu=1,
+adafactor=False,
+adam_beta1=0.9,
+adam_beta2=0.999,
+adam_epsilon=1e-08,
+auto_find_batch_size=False,
+bf16=False,
+bf16_full_eval=False,
+data_seed=None,
+dataloader_drop_last=False,
+dataloader_num_workers=0,
+dataloader_pin_memory=True,
+ddp_backend=None,
+ddp_broadcast_buffers=None,
+ddp_bucket_cap_mb=None,
+ddp_find_unused_parameters=None,
+ddp_timeout=1800,
+debug=[],
+deepspeed=None,
+disable_tqdm=False,
+dispatch_batches=None,
+do_eval=True,
+do_predict=False,
+do_train=False,
+eval_accumulation_steps=None,
+eval_delay=0,
+eval_steps=None,
+evaluation_strategy=no,
+fp16=True,
+fp16_backend=auto,
+fp16_full_eval=False,
+fp16_opt_level=O1,
+fsdp=[],
+fsdp_config={'min_num_params': 0, 'xla': False, 'xla_fsdp_grad_ckpt': False},
+fsdp_min_num_params=0,
+fsdp_transformer_layer_cls_to_wrap=None,
+full_determinism=False,
+gradient_accumulation_steps=1,
+gradient_checkpointing=False,
+gradient_checkpointing_kwargs=None,
+greater_is_better=None,
+group_by_length=False,
+half_precision_backend=auto,
+hub_always_push=False,
+hub_model_id=None,
+hub_private_repo=False,
+hub_strategy=every_save,
+hub_token=<HUB_TOKEN>,
+ignore_data_skip=False,
+include_inputs_for_metrics=False,
+include_num_input_tokens_seen=False,
+include_tokens_per_second=False,
+jit_mode_eval=False,
+label_names=None,
+label_smoothing_factor=0.0,
+learning_rate=5e-05,
+length_column_name=length,
+load_best_model_at_end=False,
+local_rank=0,
+log_level=info,
+log_level_replica=warning,
+log_on_each_node=True,
+logging_dir=/home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora/runs/Dec19_15-59-02_vsr134,
+logging_first_step=False,
+logging_nan_inf_filter=True,
+logging_steps=100,
+logging_strategy=steps,
+lr_scheduler_kwargs={},
+lr_scheduler_type=linear,
+max_grad_norm=1.0,
+max_steps=-1,
+metric_for_best_model=None,
+mp_parameters=,
+neftune_noise_alpha=None,
+no_cuda=False,
+num_train_epochs=3.0,
+optim=adamw_torch,
+optim_args=None,
+output_dir=/home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora,
+overwrite_output_dir=False,
+past_index=-1,
+per_device_eval_batch_size=1,
+per_device_train_batch_size=1,
+prediction_loss_only=False,
+push_to_hub=False,
+push_to_hub_model_id=None,
+push_to_hub_organization=None,
+push_to_hub_token=<PUSH_TO_HUB_TOKEN>,
+ray_scope=last,
+remove_unused_columns=True,
+report_to=['tensorboard', 'codecarbon'],
+resume_from_checkpoint=None,
+run_name=/home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora,
+save_on_each_node=False,
+save_safetensors=True,
+save_steps=500,
+save_strategy=steps,
+save_total_limit=1,
+seed=42,
+skip_memory_metrics=True,
+split_batches=False,
+tf32=None,
+torch_compile=False,
+torch_compile_backend=None,
+torch_compile_mode=None,
+torchdynamo=None,
+tpu_metrics_debug=False,
+tpu_num_cores=None,
+use_cpu=False,
+use_ipex=False,
+use_legacy_prediction_loop=False,
+use_mps_device=False,
+warmup_ratio=0.0,
+warmup_steps=0,
+weight_decay=0.0,
+)
+[INFO|configuration_utils.py:715] 2023-12-19 15:59:02,416 >> loading configuration file /home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf/config.json
+[INFO|configuration_utils.py:777] 2023-12-19 15:59:02,417 >> Model config LlamaConfig {
+  "_name_or_path": "/home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf",
+  "architectures": [
+    "LlamaForCausalLM"
+  ],
+  "attention_bias": false,
+  "attention_dropout": 0.0,
+  "bos_token_id": 1,
+  "eos_token_id": 2,
+  "hidden_act": "silu",
+  "hidden_size": 4096,
+  "initializer_range": 0.02,
+  "intermediate_size": 11008,
+  "max_position_embeddings": 4096,
+  "model_type": "llama",
+  "num_attention_heads": 32,
+  "num_hidden_layers": 32,
+  "num_key_value_heads": 32,
+  "pretraining_tp": 1,
+  "rms_norm_eps": 1e-05,
+  "rope_scaling": null,
+  "rope_theta": 10000.0,
+  "tie_word_embeddings": false,
+  "torch_dtype": "float16",
+  "transformers_version": "4.36.0.dev0",
+  "use_cache": true,
+  "vocab_size": 32000
+}
+
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:59:02,419 >> loading file tokenizer.model
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:59:02,419 >> loading file tokenizer.json
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:59:02,419 >> loading file added_tokens.json
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:59:02,419 >> loading file special_tokens_map.json
+[INFO|tokenization_utils_base.py:2026] 2023-12-19 15:59:02,419 >> loading file tokenizer_config.json
+/opt/conda/lib/python3.10/site-packages/datasets/load.py:2069: FutureWarning: 'use_auth_token' was deprecated in favor of 'token' in version 2.14.0 and will be removed in 3.0.0.
+You can remove this warning by passing 'token=None' instead.
+  warnings.warn(
+{'source': ['Given a target sentence construct the underlying meaning representation of the input sentence as a single function with attributes and attribute values. This function should describe the target string accurately and the function must be one of the following [\'inform\', \'request\', \'give_opinion\', \'confirm\', \'verify_attribute\', \'suggest\', \'request_explanation\', \'recommend\', \'request_attribute\'] .\n\nThe attributes must be one of the following: [\'name\', \'exp_release_date\', \'release_year\', \'developer\', \'esrb\', \'rating\', \'genres\', \'player_perspective\', \'has_multiplayer\', \'platforms\', \'available_on_steam\', \'has_linux_release\', \'has_mac_release\', \'specifier\'] The order your list the attributes within the function must follow the order listed above. For example the \'name\' attribute must always come  before the \'exp_release_date\' attribute, and so forth.\n\nFor each attribute, fill in the corresponding value of the attribute within brackets. A couple of examples are below. Note: you are to output the string after "Output: ". Do not include "Output: " in your answer. Do not give any other sentence except the required Output.\n\nExample 1)\nSentence: Dirt: Showdown from 2012 is a sport racing game for the PlayStation, Xbox, PC rated E 10+ (for Everyone 10 and Older). \nIt\'s not available on Steam, Linux, or Mac.\nOutput: inform(name[Dirt: Showdown], release_year[2012], esrb[E 10+ (for Everyone 10 and Older)], genres[driving/racing, sport],\nplatforms[PlayStation, Xbox, PC], available_on_steam[no], has_linux_release[no], has_mac_release[no])\n\nExample 2) \nSentence: Were there even any terrible games in 2014?\nOutput: request(release_year[2014], specifier[terrible])\n\nExample 3)\nSentence: Adventure games that combine platforming and puzzles can be frustrating to play, but the side view perspective is \nperfect for them. That\'s why I enjoyed playing Little Nightmares.\nOutput: give_opinion(name[Little Nightmares], rating[good], genres[adventure, platformer, puzzle], player_perspective[side view])\n\nExample 4)\nSentence: Since we\'re on the subject of games developed by Telltale Games, I\'m wondering, have you played The Wolf Among Us?\nOutput: recommend(name[The Wolf Among Us], developer[Telltale Games])\n\nExample 5) \nSentence: Layers of Fear, the indie first person point-and-click adventure game?\nOutput: confirm(name[Layers of Fear], genres[adventure, indie, point-and-click], player_perspective[first person])\t\n\nExample 6) \nSentence: I bet you like it when you can play games on Steam, like Worms: Reloaded, right?\t\nOutput: suggest(name[Worms: Reloaded], available_on_steam[yes])\n\nExample 7)\nSentence: I recall you saying that you really enjoyed The Legend of Zelda: Ocarina of Time. Are you typically a big fan of games\non Nintendo rated E (for Everyone)?\t\nOutput: verify_attribute(name[The Legend of Zelda: Ocarina of Time], esrb[E (for Everyone)], rating[excellent], platforms[Nintendo])\n\nExample 8)\nSentence: So what is it about the games that were released in 2005 that you find so excellent?\t\nOutput: request_explanation(release_year[2005], rating[excellent])\n\nExample 9)\nSentence: Do you think Mac is a better gaming platform than others?\nOutput: request_attribute(has_mac_release[])\n\nGive the output for the following sentence:\n\nDirt: Showdown from 2012 is a sport racing game for the PlayStation, Xbox, PC rated E 10+ (for Everyone 10 and Older). It\'s not available on Steam, Linux, or Mac.\nOutput: \n'], 'target': ['inform(name[Dirt: Showdown], release_year[2012], esrb[E 10+ (for Everyone 10 and Older)], genres[driving/racing, sport], platforms[PlayStation, Xbox, PC], available_on_steam[no], has_linux_release[no], has_mac_release[no])']}
+{'source': ['Given a target sentence construct the underlying meaning representation of the input sentence as a single function with attributes and attribute values. This function should describe the target string accurately and the function must be one of the following [\'inform\', \'request\', \'give_opinion\', \'confirm\', \'verify_attribute\', \'suggest\', \'request_explanation\', \'recommend\', \'request_attribute\'] .\n\nThe attributes must be one of the following: [\'name\', \'exp_release_date\', \'release_year\', \'developer\', \'esrb\', \'rating\', \'genres\', \'player_perspective\', \'has_multiplayer\', \'platforms\', \'available_on_steam\', \'has_linux_release\', \'has_mac_release\', \'specifier\'] The order your list the attributes within the function must follow the order listed above. For example the \'name\' attribute must always come  before the \'exp_release_date\' attribute, and so forth.\n\nFor each attribute, fill in the corresponding value of the attribute within brackets. A couple of examples are below. Note: you are to output the string after "Output: ". Do not include "Output: " in your answer. Do not give any other sentence except the required Output.\n\nExample 1)\nSentence: Dirt: Showdown from 2012 is a sport racing game for the PlayStation, Xbox, PC rated E 10+ (for Everyone 10 and Older). \nIt\'s not available on Steam, Linux, or Mac.\nOutput: inform(name[Dirt: Showdown], release_year[2012], esrb[E 10+ (for Everyone 10 and Older)], genres[driving/racing, sport],\nplatforms[PlayStation, Xbox, PC], available_on_steam[no], has_linux_release[no], has_mac_release[no])\n\nExample 2) \nSentence: Were there even any terrible games in 2014?\nOutput: request(release_year[2014], specifier[terrible])\n\nExample 3)\nSentence: Adventure games that combine platforming and puzzles can be frustrating to play, but the side view perspective is \nperfect for them. That\'s why I enjoyed playing Little Nightmares.\nOutput: give_opinion(name[Little Nightmares], rating[good], genres[adventure, platformer, puzzle], player_perspective[side view])\n\nExample 4)\nSentence: Since we\'re on the subject of games developed by Telltale Games, I\'m wondering, have you played The Wolf Among Us?\nOutput: recommend(name[The Wolf Among Us], developer[Telltale Games])\n\nExample 5) \nSentence: Layers of Fear, the indie first person point-and-click adventure game?\nOutput: confirm(name[Layers of Fear], genres[adventure, indie, point-and-click], player_perspective[first person])\t\n\nExample 6) \nSentence: I bet you like it when you can play games on Steam, like Worms: Reloaded, right?\t\nOutput: suggest(name[Worms: Reloaded], available_on_steam[yes])\n\nExample 7)\nSentence: I recall you saying that you really enjoyed The Legend of Zelda: Ocarina of Time. Are you typically a big fan of games\non Nintendo rated E (for Everyone)?\t\nOutput: verify_attribute(name[The Legend of Zelda: Ocarina of Time], esrb[E (for Everyone)], rating[excellent], platforms[Nintendo])\n\nExample 8)\nSentence: So what is it about the games that were released in 2005 that you find so excellent?\t\nOutput: request_explanation(release_year[2005], rating[excellent])\n\nExample 9)\nSentence: Do you think Mac is a better gaming platform than others?\nOutput: request_attribute(has_mac_release[])\n\nGive the output for the following sentence:\n\nSpellForce 3 is a pretty bad game. The developer Grimlore Games is clearly a bunch of no-talent hacks, and 2017 was a terrible year for games anyway.\nOutput: \n'], 'target': ['give_opinion(name[SpellForce 3], release_year[2017], developer[Grimlore Games], rating[poor])']}
+[INFO|modeling_utils.py:3118] 2023-12-19 15:59:04,450 >> loading weights file /home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf/model.safetensors.index.json
+[INFO|modeling_utils.py:1222] 2023-12-19 15:59:04,450 >> Instantiating LlamaForCausalLM model under default dtype torch.float16.
+[INFO|configuration_utils.py:796] 2023-12-19 15:59:04,451 >> Generate config GenerationConfig {
+  "bos_token_id": 1,
+  "eos_token_id": 2
+}
+
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:00<00:00,  3.65it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00,  4.16it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00,  4.07it/s]
+[INFO|modeling_utils.py:3950] 2023-12-19 15:59:05,163 >> All model checkpoint weights were used when initializing LlamaForCausalLM.
+
+[INFO|modeling_utils.py:3958] 2023-12-19 15:59:05,163 >> All the weights of LlamaForCausalLM were initialized from the model checkpoint at /home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf.
+If your task is similar to the task the model of the checkpoint was trained on, you can already use LlamaForCausalLM for predictions without further training.
+[INFO|configuration_utils.py:749] 2023-12-19 15:59:05,166 >> loading configuration file /home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf/generation_config.json
+[INFO|configuration_utils.py:796] 2023-12-19 15:59:05,166 >> Generate config GenerationConfig {
+  "bos_token_id": 1,
+  "do_sample": true,
+  "eos_token_id": 2,
+  "max_length": 4096,
+  "pad_token_id": 0,
+  "temperature": 0.6,
+  "top_p": 0.9
+}
+
+2023-12-19 15:59:05,234 - __main__ - INFO - Using data collator of type DataCollatorForSeq2Seq
+2023-12-19 15:59:21,209 - __main__ - INFO - ***original optimized model parameter***
+trainable params: 0 || all params: 6,742,609,920 || trainable%: 0.0
+[INFO|trainer.py:593] 2023-12-19 15:59:25,469 >> Using auto half precision backend
+/opt/conda/lib/python3.10/site-packages/tzlocal/unix.py:193: UserWarning: Can not find any timezone configuration, defaulting to UTC.
+  warnings.warn("Can not find any timezone configuration, defaulting to UTC.")
+2023-12-19 15:59:25,476 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+copy base model config to /home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora/merged_model
+remove unnecessary file from /home/vmagent/app/LLM_datapre/data//Llama-2-7b-chat-hf
+Save merged model to /home/vmagent/app/LLM_datapre/data//textformat/models/viggo/models/Llama-2-7b-chat-hf-lora/merged_model
+2023-12-19 16:00:21,584 - __main__ - INFO - *** Evaluate ***
+[INFO|trainer.py:738] 2023-12-19 16:00:21,585 >> The following columns in the evaluation set don't have a corresponding argument in `PeftModelForCausalLM.forward` and have been ignored: prompt_targets, prompt_sources. If prompt_targets, prompt_sources are not expected by `PeftModelForCausalLM.forward`,  you can safely ignore this message.
+[INFO|trainer.py:3173] 2023-12-19 16:00:21,594 >> ***** Running Evaluation *****
+[INFO|trainer.py:3175] 2023-12-19 16:00:21,594 >>   Num examples = 16
+[INFO|trainer.py:3178] 2023-12-19 16:00:21,594 >>   Batch size = 1
+[WARNING|logging.py:314] 2023-12-19 16:00:21,597 >> You're using a LlamaTokenizerFast tokenizer. Please note that with a fast tokenizer, using the `__call__` method is faster than using a method to encode the text followed by a call to the `pad` method to get a padded encoding.
+  0%|          | 0/16 [00:00<?, ?it/s] 12%|█▎        | 2/16 [00:00<00:01,  7.13it/s] 19%|█▉        | 3/16 [00:00<00:02,  5.01it/s] 25%|██▌       | 4/16 [00:00<00:02,  4.33it/s] 31%|███▏      | 5/16 [00:01<00:02,  4.01it/s] 38%|███▊      | 6/16 [00:01<00:02,  3.83it/s] 44%|████▍     | 7/16 [00:01<00:02,  3.73it/s] 50%|█████     | 8/16 [00:01<00:02,  3.67it/s] 56%|█████▋    | 9/16 [00:02<00:01,  3.63it/s] 62%|██████▎   | 10/16 [00:02<00:01,  3.60it/s] 69%|██████▉   | 11/16 [00:02<00:01,  3.61it/s] 75%|███████▌  | 12/16 [00:03<00:01,  3.66it/s] 81%|████████▏ | 13/16 [00:03<00:00,  3.68it/s] 88%|████████▊ | 14/16 [00:03<00:00,  3.62it/s] 94%|█████████▍| 15/16 [00:03<00:00,  3.60it/s]100%|██████████| 16/16 [00:04<00:00,  3.61it/s]100%|██████████| 16/16 [00:04<00:00,  3.66it/s]
+***** eval metrics *****
+  eval_loss               =     1.7237
+  eval_runtime            = 0:00:04.48
+  eval_samples            =         16
+  eval_samples_per_second =      3.565
+  eval_steps_per_second   =      3.565
+  eval_tokens             =      16752

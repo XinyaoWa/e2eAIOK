@@ -310,34 +310,68 @@ class FinetuneArguments:
         default=20,
         metadata={"help": "the limit length of output"},
     )
+    prompt_type: Optional[str] = field(
+        default="alpaca",
+        metadata={"help": "prompt type, can be 'alpaca', 'qa', 'viggo_textformat'"},
+    )
+    prompt_file_viggo_textformat: Optional[str] = field(
+        default="",
+        metadata={"help": "prompt path for viggo_textformat"},
+    )
 
-PROMPT_DICT = {
-    "prompt_with_input": (
-        "Below is an instruction that describes a task, paired with an input that provides further context. "
-        "Write a response that appropriately completes the request.\n\n"
-        "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:"
-    ),
-    "prompt_without_input": (
-        "Below is an instruction that describes a task. "
-        "Write a response that appropriately completes the request.\n\n"
-        "### Instruction:\n{instruction}\n\n### Response:"
-    ),
-}
-
-
-def create_prompts(examples):
+def create_prompts(examples, prompt_type="alpaca", prompt_file_viggo_textformat=None):
+    if prompt_type == "viggo_textformat":
+        assert os.path.isfile(prompt_file_viggo_textformat)
+    PROMPT_DICT = {
+        "prompt_with_input": (
+            "Below is an instruction that describes a task, paired with an input that provides further context. "
+            "Write a response that appropriately completes the request.\n\n"
+            "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:"
+        ),
+        "prompt_without_input": (
+            "Below is an instruction that describes a task. "
+            "Write a response that appropriately completes the request.\n\n"
+            "### Instruction:\n{instruction}\n\n### Response:"
+        ),
+        "qa": (
+            "Below is an question, please read it and write an response that appropriately answer the question.\n\n"
+            "### Question:\n{Question}\n\n ### Response:"
+        ),
+        "viggo_textformat": (
+            open(prompt_file_viggo_textformat).read() + "\n{ref}\nOutput: \n"
+        )
+    }
+    print_flag = True
     prompts = {}
     prompts["source"] = []
     prompts["target"] = []
     for example in examples:
-        prompt_template = (
-            PROMPT_DICT["prompt_with_input"]
-            if example["input"] != ""
-            else PROMPT_DICT["prompt_without_input"]
-        )
-        source = prompt_template.format_map(example)
-        prompts["source"].append(source)
-        prompts["target"].append(example["output"])
+        if prompt_type == "alpaca":
+            prompt_template = (
+                PROMPT_DICT["prompt_with_input"]
+                if example["input"] != ""
+                else PROMPT_DICT["prompt_without_input"]
+            )
+            source = prompt_template.format_map(example)
+            prompts["source"].append(source)
+            prompts["target"].append(example["output"])
+        elif prompt_type == "qa":
+            prompt_template = (
+                PROMPT_DICT["qa"]
+            )
+            source = prompt_template.format_map(example)
+            prompts["source"].append(source)
+            prompts["target"].append(example["Answer"])
+        elif prompt_type == "viggo_textformat":
+            prompt_template = (
+                PROMPT_DICT["viggo_textformat"]
+            )
+            source = prompt_template.format_map(example)
+            prompts["source"].append(source)
+            prompts["target"].append(example["mr"])
+            if print_flag:
+                print(prompts)
+                print_flag = False
     return prompts
 
 
@@ -527,7 +561,7 @@ def main():
 
     # Preprocessing the datasets.
     for key in raw_datasets:
-        prompts = create_prompts(raw_datasets[key])
+        prompts = create_prompts(raw_datasets[key], finetune_args.prompt_type, finetune_args.prompt_file_viggo_textformat)
         columns_to_be_removed = list(raw_datasets[key].features.keys())
         raw_datasets[key] = raw_datasets[key].add_column(
             "prompt_sources", prompts["source"]
@@ -728,9 +762,9 @@ def main():
          
     if finetune_args.debugs:
         if training_args.do_train:
-            train_dataset = train_dataset.select(range(8))
+            train_dataset = train_dataset.select(range(16))
         if training_args.do_eval:
-            eval_dataset = eval_dataset.select(range(50))
+            eval_dataset = eval_dataset.select(range(16))
 
     if not finetune_args.habana:
         # Initialize our Trainer
