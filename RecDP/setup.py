@@ -2,6 +2,7 @@ import setuptools
 import pkg_resources
 import pathlib
 from itertools import chain
+import sys
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -25,11 +26,11 @@ class SetupSpec:
         self.version = find_version()
         self.files_to_include: list = []
         self.install_requires: list = [
-            "scikit-learn",
+            "scikit-learn==1.3.2",
             "psutil",
             "tqdm",
             "pyyaml",
-            "pandas",
+            "pandas==2.1.4",
             "numpy",
             "pyarrow",
             "ipywidgets",
@@ -40,13 +41,14 @@ class SetupSpec:
             "cloudpickle",
             "wget==3.2",
             "pyspark==3.4.0",
-            "ray==2.7.1",
+            "ray>=2.7.1",
             "matplotlib",
             "jsonlines==3.1.0",
             "regex==2023.6.3",
             "typer>=0.6.1",
             "scipy==1.10.1",
             "tabulate==0.9.0",
+            "grpcio",
         ]
         self.extras: dict = {}
         self.extras['autofe'] = list_requirements("pyrecdp/autofe/requirements.txt")
@@ -57,36 +59,45 @@ class SetupSpec:
     def get_packages(self):
         return setuptools.find_packages()
 
-setup_spec = SetupSpec()
 
-setuptools.setup(
-    name="pyrecdp",
-    version=setup_spec.version,
-    author="INTEL BDF AIOK",
-    author_email="bdf.aiok@intel.com",
-    description=
-    "A data processing bundle for spark based recommender system operations",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url = "https://github.com/intel/e2eAIOK/",
-    project_urls={
-        "Bug Tracker": "https://github.com/intel/e2eAIOK/",
-    },
-    keywords=(
-        "pyrecdp recdp distributed parallel auto-feature-engineering autofe LLM python"
-    ),
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: Apache Software License",
-        "Operating System :: OS Independent",
-    ],
-    include_package_data=True,
-    package_dir={},
-    packages=setup_spec.get_packages(),
-    package_data={"": ["*.jar"], "pyrecdp": ["version"]},
-    python_requires=">=3.6",
-    #cmdclass={'install': post_install},
-    zip_safe=False,
-    install_requires=setup_spec.install_requires,
-    extras_require=setup_spec.extras,
-)
+if __name__ == '__main__':
+
+    if "--with_prefix" in sys.argv:
+        name = 'e2eAIOK-recdp'
+        sys.argv.remove("--with_prefix")
+    else:
+        name = 'pyrecdp'
+
+    setup_spec = SetupSpec()
+
+    setuptools.setup(
+        name=name,
+        version=setup_spec.version,
+        author="INTEL BDF AIOK",
+        author_email="bdf.aiok@intel.com",
+        description=
+        "A data processing bundle for spark based recommender system operations",
+        long_description=long_description,
+        long_description_content_type="text/markdown",
+        url = "https://github.com/intel/e2eAIOK/",
+        project_urls={
+            "Bug Tracker": "https://github.com/intel/e2eAIOK/",
+        },
+        keywords=(
+            "pyrecdp recdp distributed parallel auto-feature-engineering autofe LLM python"
+        ),
+        classifiers=[
+            "Programming Language :: Python :: 3",
+            "License :: OSI Approved :: Apache Software License",
+            "Operating System :: OS Independent",
+        ],
+        include_package_data=True,
+        package_dir={},
+        packages=setup_spec.get_packages(),
+        package_data={"": ["*.jar"], "pyrecdp": ["version"]},
+        python_requires=">=3.6",
+        #cmdclass={'install': post_install},
+        zip_safe=False,
+        install_requires=setup_spec.install_requires,
+        extras_require=setup_spec.extras,
+    )

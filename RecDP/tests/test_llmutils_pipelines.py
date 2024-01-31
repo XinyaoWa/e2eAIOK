@@ -4,6 +4,7 @@ import pandas as pd
 from pathlib import Path
 import os
 from IPython.display import display
+from pyspark.sql import DataFrame
 
 pathlib = str(Path(__file__).parent.parent.resolve())
 print(pathlib)
@@ -169,6 +170,7 @@ class Test_LLMUtils_Pipeline(unittest.TestCase):
         df = pd.read_parquet("tests/data/PILE/NIH_sample.parquet")
         ret = pipeline.execute(df)
         display(ret.to_pandas())
+        del pipeline
 
     def test_pipeline_execute_pandasdf_spark(self):
         import pandas as pd
@@ -180,6 +182,7 @@ class Test_LLMUtils_Pipeline(unittest.TestCase):
         df = pd.read_parquet("tests/data/PILE/NIH_sample.parquet")
         ret = pipeline.execute(df)
         display(ret.toPandas())
+        del pipeline
 
     def test_llm_rag_url_pipeline(self):
         model_root_path = os.path.join(RECDP_MODELS_CACHE, "huggingface")
@@ -188,8 +191,7 @@ class Test_LLMUtils_Pipeline(unittest.TestCase):
         pipeline = TextPipeline()
         ops = [
             UrlLoader(["https://www.intc.com/news-events/press-releases/detail/"
-                            "1655/intel-reports-third-quarter-2023-financial-results"],
-                      target_tag='div', target_attrs={'class': 'main-content'}),
+                            "1655/intel-reports-third-quarter-2023-financial-results"]),
             DocumentSplit(text_splitter='RecursiveCharacterTextSplitter'),
             DocumentIngestion(
                 vector_store='FAISS',
@@ -203,13 +205,14 @@ class Test_LLMUtils_Pipeline(unittest.TestCase):
         ]
         pipeline.add_operations(ops)
         pipeline.execute()
+        del pipeline
 
     def test_llm_rag_url_pdf_pipeline(self):
         pipeline = TextPipeline()
         ops = [
             UrlLoader(["https://www.intc.com/news-events/press-releases/detail/"
                             "1655/intel-reports-third-quarter-2023-financial-results"],
-                      max_depth=2, target_tag='div', target_attrs={'class': 'main-content'}),
+                      max_depth=2),
             DirectoryLoader("tests/data/press_pdf", glob="**/*.pdf"),
             RAGTextFix(),
             DocumentSplit(text_splitter='RecursiveCharacterTextSplitter')
@@ -217,6 +220,7 @@ class Test_LLMUtils_Pipeline(unittest.TestCase):
         pipeline.add_operations(ops)
         ret = pipeline.execute()
         display(ret.to_pandas())
+        del pipeline
 
     def test_llm_rag_pdf_return_db_pipeline(self):
         model_root_path = os.path.join(RECDP_MODELS_CACHE, "huggingface")
@@ -240,10 +244,13 @@ class Test_LLMUtils_Pipeline(unittest.TestCase):
         pipeline.add_operations(ops)
         ret = pipeline.execute()
         display(ret)
+        del pipeline
 
     def test_llm_rag_pdf_use_existing_db_pipeline(self):
-        from pyrecdp.core.import_utils import import_sentence_transformers
-        ## Pretent that someone else already define the handler ##
+        from pyrecdp.core.import_utils import import_sentence_transformers, check_availability_and_install
+        check_availability_and_install(["langchain", "faiss-cpu"])
+
+        # Present that someone else already define the handler ##
         model_root_path = os.path.join(RECDP_MODELS_CACHE, "huggingface")
         model_name = f"{model_root_path}/sentence-transformers/all-mpnet-base-v2"
         faiss_output_dir = 'tests/data/faiss'
@@ -271,11 +278,18 @@ class Test_LLMUtils_Pipeline(unittest.TestCase):
         pipeline.add_operations(ops)
         ret = pipeline.execute()
         display(ret)
+        del pipeline
 
     def test_llm_rag_pipeline_cnvrg(self):
-        from pyrecdp.primitives.operations import DocumentLoader,RAGTextFix,CustomerDocumentSplit,TextCustomerFilter,JsonlWriter
+        from pyrecdp.primitives.operations import UrlLoader,RAGTextFix,CustomerDocumentSplit,TextCustomerFilter,JsonlWriter
         from pyrecdp.LLM import TextPipeline
 
+        def prepare_nltk_model(model, lang):
+            import nltk
+            nltk.download('punkt')
+
+        from pyrecdp.core.model_utils import prepare_model
+        prepare_model(model_type="nltk", model_key="nltk_rag_cnvrg", prepare_model_func=prepare_nltk_model)
         urls = ['https://app.cnvrg.io/docs/',
                 'https://app.cnvrg.io/docs/core_concepts/python_sdk_v2.html',
                 'https://app.cnvrg.io/docs/cli_v2/cnvrgv2_cli.html',
@@ -313,13 +327,15 @@ class Test_LLMUtils_Pipeline(unittest.TestCase):
 
         pipeline = TextPipeline()
         ops = [
-            DocumentLoader(loader='UnstructuredURLLoader', loader_args={'urls': urls}, requirements=['unstructured']),
+            UrlLoader(urls, max_depth=2),
             RAGTextFix(str_to_replace={'\n###': '', '\n##': '', '\n#': ''}, remove_extra_whitespace=True),
             CustomerDocumentSplit(func=lambda text: text.split('# ')[1:]),
             TextCustomerFilter(custom_filter),
             CustomerDocumentSplit(func=chunk_doc, max_num_of_words=50),
+            GlobalDeduplicate(),
             JsonlWriter("TextPipeline_output_jsonl")
         ]
         pipeline.add_operations(ops)
-        ds = pipeline.execute()
-        display(ds.to_pandas())
+        ds:DataFrame = pipeline.execute()
+        display(ds.toPandas())
+        del pipeline
