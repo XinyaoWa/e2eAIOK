@@ -338,7 +338,7 @@ def create_prompts(examples, prompt_type="alpaca", prompt_file_viggo_textformat=
             "### Question:\n{Question}\n\n ### Response:"
         ),
         "viggo_textformat": (
-            open(prompt_file_viggo_textformat).read() + "\n{ref}\nOutput: \n"
+            open(prompt_file_viggo_textformat).read() + "{input}\n##Output##\n"
         )
     }
     print_flag = True
